@@ -317,7 +317,10 @@
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
-            event.target.closest('.tab-btn').classList.add('active');
+            
+            // Active tab butonunu bul
+            const activeBtn = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+            if (activeBtn) activeBtn.classList.add('active');
             
             if (tabName === 'nihai') renderFinalList();
         }
@@ -655,6 +658,12 @@
         window.savePointsAndFinish = savePointsAndFinish;
         window.downloadAsImage = downloadAsImage;
         window.shareToWhatsApp = shareToWhatsApp;
+        window.switchTab = switchTab;
+        window.filterByColor = filterByColor;
+        window.openEditModal = openEditModal;
+        window.closeEditModal = closeEditModal;
+        window.savePerson = savePerson;
+        window.deletePerson = deletePerson;
         
         // Puanlamaya geçince listesini yükle
         const observer = new MutationObserver(() => {

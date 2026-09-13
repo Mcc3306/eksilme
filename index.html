@@ -54,11 +54,11 @@
         .radio-item input:checked { accent-color: #f59e0b; }
         .radio-item.selected { border-color: #f59e0b; background: #fffbf0; }
         #finalListPrintable { background: white; padding: 0.5rem; }
-        .final-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
-        @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(2, 1fr); } }
-        .final-item { padding: 0.8rem; border-radius: 6px; color: white; font-weight: 600; text-align: center; font-size: 13px; display: flex; flex-direction: column; justify-content: center; min-height: 70px; }
-        .final-number { font-size: 20px; font-weight: 700; }
-        .final-name { font-size: 12px; margin-top: 0.3rem; word-break: break-word; }
+        .final-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1rem 0; }
+        @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; } }
+        .final-item { padding: 1rem; border-radius: 8px; color: white; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: flex-start; gap: 0.8rem; min-height: 60px; }
+        .final-number { font-size: 24px; font-weight: 900; min-width: 30px; text-align: left; }
+        .final-name { font-size: 13px; word-break: break-word; line-height: 1.3; }
         .nob-section { margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; font-weight: 600; }
         .nob-info { font-size: 12px; opacity: 0.9; }
         .nob-name { font-size: 18px; margin-top: 0.5rem; }
@@ -259,29 +259,34 @@
         function initColorTabs() {
             const colorTabs = document.getElementById('colorTabs');
             colorTabs.innerHTML = '';
-            const uniqueColors = [...new Set(personData.map(p => p.color))];
+            const uniqueColors = [...new Set(personData.map(p => p.color))].sort();
             
             const allTab = document.createElement('div');
             allTab.className = 'color-tab active';
             allTab.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             allTab.title = 'Tümü';
-            allTab.onclick = () => filterByColor(null);
+            allTab.onclick = () => { 
+                document.querySelectorAll('.color-tab').forEach(t => t.classList.remove('active'));
+                allTab.classList.add('active');
+                filterByColor(null);
+            };
             colorTabs.appendChild(allTab);
             
             uniqueColors.forEach(color => {
                 const tab = document.createElement('div');
                 tab.className = 'color-tab';
                 tab.style.background = color;
-                tab.onclick = () => filterByColor(color);
+                tab.onclick = (e) => { 
+                    document.querySelectorAll('.color-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    filterByColor(color);
+                };
                 colorTabs.appendChild(tab);
             });
         }
 
         function filterByColor(color) {
             filteredByColor = color;
-            document.querySelectorAll('.color-tab').forEach((tab, idx) => {
-                tab.classList.toggle('active', (idx === 0 && color === null) || (idx > 0 && personData[idx]?.color === color));
-            });
             updateChecklists();
         }
 
@@ -535,7 +540,7 @@
             
             sorted.forEach((p, idx) => {
                 if (p.id !== currentShiftNobetci) {
-                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${idx + 1}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${idx + 1}</div><div class="final-name">${p.rank}.<br/>${p.name}</div></div>`;
                 }
             });
             
@@ -568,10 +573,28 @@
             try {
                 const element = document.getElementById('finalListPrintable');
                 const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-                canvas.toBlob(blob => {
-                    const url = URL.createObjectURL(blob);
-                    window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent('Vardiya Listesi: ' + currentShiftDate)}`);
-                    alert('Resim: ' + url);
+                
+                canvas.toBlob(async blob => {
+                    const file = new File([blob], `vardiya-${currentShiftDate || 'list'}.jpg`, { type: 'image/jpeg' });
+                    
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                title: 'Vardiya Listesi',
+                                text: 'Vardiya Tarihi: ' + currentShiftDate,
+                                files: [file]
+                            });
+                        } catch (err) {
+                            if (err.name !== 'AbortError') console.error(err);
+                        }
+                    } else {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `vardiya-${currentShiftDate || 'list'}.jpg`;
+                        a.click();
+                        alert('✅ Resim indirildi. Paylaşmak için dosyayı seçin.');
+                    }
                 });
             } catch (e) {
                 alert('Hata: ' + e.message);

@@ -54,11 +54,11 @@
         .radio-item input:checked { accent-color: #f59e0b; }
         .radio-item.selected { border-color: #f59e0b; background: #fffbf0; }
         #finalListPrintable { background: white; padding: 0.5rem; }
-        .final-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1rem 0; }
-        @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; } }
-        .final-item { padding: 1rem; border-radius: 8px; color: white; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: flex-start; gap: 0.8rem; min-height: 60px; }
-        .final-number { font-size: 24px; font-weight: 900; min-width: 30px; text-align: left; }
-        .final-name { font-size: 13px; word-break: break-word; line-height: 1.3; }
+        .final-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; margin: 1rem 0; }
+        @media (max-width: 480px) { .final-grid { grid-template-columns: repeat(2, 1fr); gap: 0.3rem; } }
+        .final-item { padding: 0.6rem; border-radius: 6px; color: white; font-weight: 600; font-size: 11px; display: flex; align-items: center; justify-content: flex-start; gap: 0.5rem; min-height: 50px; }
+        .final-number { font-size: 18px; font-weight: 900; min-width: 25px; text-align: left; }
+        .final-name { font-size: 11px; word-break: break-word; line-height: 1.2; }
         .nob-section { margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; font-weight: 600; }
         .nob-info { font-size: 12px; opacity: 0.9; }
         .nob-name { font-size: 18px; margin-top: 0.5rem; }
@@ -259,13 +259,19 @@
         function initColorTabs() {
             const colorTabs = document.getElementById('colorTabs');
             colorTabs.innerHTML = '';
-            const uniqueColors = [...new Set(personData.map(p => p.color))].sort();
+            
+            // Exact duplicate renkler - RGB parse et
+            const colorMap = new Map();
+            personData.forEach(p => {
+                colorMap.set(p.color.toUpperCase(), p.color);
+            });
+            const uniqueColors = Array.from(colorMap.values()).sort();
             
             const allTab = document.createElement('div');
             allTab.className = 'color-tab active';
             allTab.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             allTab.title = 'Tümü';
-            allTab.onclick = () => { 
+            allTab.onclick = (e) => { 
                 document.querySelectorAll('.color-tab').forEach(t => t.classList.remove('active'));
                 allTab.classList.add('active');
                 filterByColor(null);
@@ -538,9 +544,11 @@
             let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong style="font-size: 14px;">Vardiya Tarihi: ${currentShiftDate}</strong></div>`;
             html += '<div class="final-grid">';
             
+            let displayNumber = 1;
             sorted.forEach((p, idx) => {
                 if (p.id !== currentShiftNobetci) {
-                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${idx + 1}</div><div class="final-name">${p.rank}.<br/>${p.name}</div></div>`;
+                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${displayNumber}</div><div class="final-name">${p.rank}.<br/>${p.name}</div></div>`;
+                    displayNumber++;
                 }
             });
             

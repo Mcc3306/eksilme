@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vardiya Eksilme Listesi</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/+esm"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,9 +13,7 @@
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
         .header h1 { font-size: 28px; margin-bottom: 0.5rem; }
         .header p { opacity: 0.9; font-size: 14px; }
-        .status-badge { display: inline-block; padding: 0.4rem 0.8rem; background: rgba(255, 255, 255, 0.3); border-radius: 20px; font-size: 12px; margin-top: 0.5rem; }
-        .status-badge.online { background: rgba(76, 175, 80, 0.5); }
-        .status-badge.offline { background: rgba(244, 67, 54, 0.5); }
+        .status { display: inline-block; padding: 0.4rem 0.8rem; background: rgba(76, 175, 80, 0.5); border-radius: 20px; font-size: 12px; margin-top: 0.5rem; }
         .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; overflow-x: auto; flex-wrap: wrap; }
         .tab-btn { padding: 0.75rem 1.5rem; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; }
         .tab-btn:hover { border-color: #667eea; color: #667eea; }
@@ -25,50 +22,42 @@
         .tab-content.active { display: block; }
         .form-group { margin-bottom: 1.5rem; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #333; font-size: 14px; }
-        .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.3s; }
+        .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
         .color-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
         .color-option { width: 100%; aspect-ratio: 1; border-radius: 8px; cursor: pointer; border: 3px solid transparent; transition: all 0.2s; }
         .color-option:hover { transform: scale(1.1); }
         .color-option.selected { border-color: #333; box-shadow: 0 0 0 2px white, 0 0 0 4px #333; }
-        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
-        .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #5568d3; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-        .btn-primary:active { transform: scale(0.98); }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-primary { background: #667eea; color: white; width: 100%; }
+        .btn-primary:hover { background: #5568d3; }
         .btn-danger { background: #ef4444; color: white; }
         .btn-danger:hover { background: #dc2626; }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 12px; }
         .person-list { display: grid; gap: 1rem; margin-top: 1.5rem; }
-        .person-item { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; display: flex; align-items: center; gap: 1rem; transition: all 0.2s; }
-        .person-item:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border-color: #667eea; }
+        .person-item { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; display: flex; align-items: center; gap: 1rem; }
         .person-badge { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-        .person-info { flex: 1; min-width: 0; }
-        .person-name { font-weight: 600; font-size: 15px; margin-bottom: 0.25rem; }
+        .person-info { flex: 1; }
+        .person-name { font-weight: 600; font-size: 15px; }
         .person-rank { font-size: 12px; color: #999; }
-        .person-points { font-weight: 700; font-size: 18px; color: #667eea; min-width: 60px; text-align: right; }
-        .checkbox-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; border: 1px solid #e0e0e0; transition: all 0.2s; }
-        .checkbox-item:hover { background: #f0f0f0; border-color: #667eea; }
-        .checkbox-item input { cursor: pointer; width: 20px; height: 20px; accent-color: #667eea; }
+        .person-points { font-weight: 700; font-size: 18px; color: #667eea; }
+        .checkbox-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; border: 1px solid #e0e0e0; }
+        .checkbox-item input { width: 20px; height: 20px; accent-color: #667eea; cursor: pointer; }
         .checkbox-name { font-weight: 600; font-size: 14px; }
         .final-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
         .final-item { padding: 1.25rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
         .final-number { min-width: 40px; text-align: center; font-size: 20px; background: rgba(255, 255, 255, 0.3); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        .final-name { flex: 1; font-size: 16px; }
-        .final-points { font-size: 14px; opacity: 0.9; background: rgba(255, 255, 255, 0.2); padding: 0.4rem 0.8rem; border-radius: 4px; }
+        .final-name { flex: 1; }
+        .final-points { font-size: 14px; background: rgba(255, 255, 255, 0.2); padding: 0.4rem 0.8rem; border-radius: 4px; }
         .nob-section { margin-top: 2rem; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; }
-        .nob-title { font-size: 14px; opacity: 0.9; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
-        .nob-name { font-size: 24px; font-weight: 700; word-break: break-word; }
-        .point-input-group { display: grid; grid-template-columns: 1fr 100px; gap: 1rem; align-items: end; margin-bottom: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; border: 1px solid #e0e0e0; }
+        .nob-name { font-size: 24px; font-weight: 700; }
+        .point-input-group { display: grid; grid-template-columns: 1fr 100px; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; border: 1px solid #e0e0e0; }
         .point-input-group input { padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .empty-state { text-align: center; padding: 3rem 1rem; color: #999; }
-        .empty-state i { font-size: 48px; margin-bottom: 1rem; opacity: 0.5; }
         .info-box { background: #e3f2fd; border-left: 4px solid #667eea; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; font-size: 14px; color: #1976d2; }
-        .loading { text-align: center; padding: 2rem; color: #999; }
-        .loading i { animation: spin 1s linear infinite; font-size: 32px; margin-bottom: 1rem; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .header { padding: 1.5rem; } .header h1 { font-size: 22px; } }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -76,9 +65,7 @@
         <div class="header">
             <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi</h1>
             <p>Personel yönetimi ve vardiya planlaması sistemi</p>
-            <div class="status-badge" id="statusBadge">
-                <i class="fas fa-spinner"></i> Bağlanıyor...
-            </div>
+            <div class="status"><i class="fas fa-circle"></i> Çevrimiçi (Supabase)</div>
         </div>
         
         <div class="tabs">
@@ -115,7 +102,7 @@
                 <label>Renk Seçin</label>
                 <div class="color-picker" id="colorPicker"></div>
             </div>
-            <button class="btn btn-primary" onclick="addPerson()" style="width: 100%;"><i class="fas fa-plus"></i> Personel Ekle</button>
+            <button class="btn btn-primary" onclick="addPerson()"><i class="fas fa-plus"></i> Personel Ekle</button>
             <div style="margin-top: 2rem;">
                 <h3 style="margin-bottom: 1rem;">Mevcut Personel (<span id="personCount">0</span>)</h3>
                 <div id="personList" class="person-list"></div>
@@ -129,8 +116,8 @@
                 <label>Vardiya Tarihi</label>
                 <input type="date" id="shiftDate" />
             </div>
-            <button class="btn btn-primary" onclick="saveShiftDate()" style="margin-bottom: 2rem;"><i class="fas fa-save"></i> Tarihi Kaydet</button>
-            <h3 style="margin-bottom: 1rem;">Gelecek Personel Seçin</h3>
+            <button class="btn btn-primary" onclick="saveShiftDate()"><i class="fas fa-save"></i> Tarihi Kaydet</button>
+            <h3 style="margin-bottom: 1rem; margin-top: 2rem;">Gelecek Personel Seçin</h3>
             <div id="checklist"></div>
         </div>
         
@@ -140,7 +127,7 @@
             <div id="pointsInfo" class="info-box" style="display:none;"></div>
             <h3 style="margin-bottom: 1rem;">Personele Puan Verin</h3>
             <div id="pointsList"></div>
-            <button class="btn btn-primary" onclick="savePoints()" style="width: 100%; margin-top: 1.5rem;"><i class="fas fa-calculator"></i> Puanları Kaydet ve Hesapla</button>
+            <button class="btn btn-primary" onclick="savePoints()" style="margin-top: 1.5rem;"><i class="fas fa-calculator"></i> Puanları Kaydet ve Hesapla</button>
         </div>
         
         <!-- NÖBETÇİ -->
@@ -158,81 +145,28 @@
             <div id="finalList"></div>
         </div>
     </div>
-    
-    <script>
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCmdAo9Lf6Zq053r3ecWpGMPMRcevJ74sk",
-            authDomain: "eksilme-listesi.firebaseapp.com",
-            databaseURL: "https://eksilme-listesi-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "eksilme-listesi",
-            storageBucket: "eksilme-listesi.firebasestorage.app",
-            messagingSenderId: "963322441956",
-            appId: "1:963322441956:web:4fa1a6e9b9801afa007cf1"
-        };
 
-        // Firebase başlat
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database(app);
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/+esm';
+
+        const supabaseUrl = 'https://vyltlhuwjmqxcoympmhu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bHRsaHV3am1xeGNveW1wbWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMzc4NzcsImV4cCI6MjEwNDgxMzg3N30.3Tz3Kddqohhxa3pRijMkPZPowbSHsOEwYkZ2dCxlpSM';
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         let personData = [];
         let selectedColor = '#3B82F6';
         let currentShift = { date: '', members: [], nobetci: null };
-        let isOnline = navigator.onLine;
         
         const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
-        
-        // Sayfa yüklendiğinde
-        window.addEventListener('load', () => {
+
+        // Başlat
+        window.addEventListener('DOMContentLoaded', () => {
             initColorPicker();
-            loadFromFirebase();
+            loadAllData();
+            subscribeToChanges();
         });
 
-        // Online/Offline durumu
-        window.addEventListener('online', () => {
-            isOnline = true;
-            updateStatus();
-        });
-        window.addEventListener('offline', () => {
-            isOnline = false;
-            updateStatus();
-        });
-
-        function updateStatus() {
-            const badge = document.getElementById('statusBadge');
-            if (isOnline) {
-                badge.className = 'status-badge online';
-                badge.innerHTML = '<i class="fas fa-circle"></i> Çevrimiçi (Firebase)';
-            } else {
-                badge.className = 'status-badge offline';
-                badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> Çevrimdışı';
-            }
-        }
-
-        // Firebase'den veri yükle
-        function loadFromFirebase() {
-            const personRef = database.ref('personel');
-            const shiftRef = database.ref('shift');
-
-            personRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                personData = data ? Object.values(data) : [];
-                renderPersonList();
-                updateChecklists();
-                updateStatus();
-            });
-
-            shiftRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    currentShift = data;
-                    document.getElementById('shiftDate').value = currentShift.date || '';
-                    updateChecklists();
-                }
-            });
-        }
-
-        // Renk seçici
         function initColorPicker() {
             const picker = document.getElementById('colorPicker');
             colors.forEach(color => {
@@ -248,20 +182,58 @@
             });
         }
 
-        // Tab değiştir
+        async function loadAllData() {
+            try {
+                const { data: persons, error: personError } = await supabase
+                    .from('personel')
+                    .select('*');
+                
+                if (personError) throw personError;
+                personData = persons || [];
+
+                const { data: shift, error: shiftError } = await supabase
+                    .from('shift')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+                
+                if (shift && !shiftError) {
+                    currentShift = {
+                        date: shift.date || '',
+                        members: shift.members || [],
+                        nobetci: shift.nobetci || null
+                    };
+                    document.getElementById('shiftDate').value = currentShift.date || '';
+                }
+
+                renderPersonList();
+                updateChecklists();
+            } catch (e) {
+                console.error('Veri yükleme hatası:', e);
+            }
+        }
+
+        function subscribeToChanges() {
+            supabase
+                .channel('changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'personel' }, () => {
+                    loadAllData();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'shift' }, () => {
+                    loadAllData();
+                })
+                .subscribe();
+        }
+
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.closest('.tab-btn').classList.add('active');
-            
-            if (tabName === 'nihai') {
-                renderFinalList();
-            }
+            if (tabName === 'nihai') renderFinalList();
         }
 
-        // Personel ekle
-        function addPerson() {
+        window.addPerson = async function() {
             const rank = document.getElementById('inputRank').value;
             const name = document.getElementById('inputName').value;
             const points = parseInt(document.getElementById('inputPoints').value) || 0;
@@ -271,27 +243,34 @@
                 return;
             }
             
-            const newPerson = {
-                id: Date.now(),
-                rank,
-                name: name.trim(),
-                points,
-                color: selectedColor,
-                createdDate: new Date().toLocaleDateString('tr-TR')
-            };
-            
-            database.ref(`personel/${newPerson.id}`).set(newPerson);
-            document.getElementById('inputName').value = '';
-            document.getElementById('inputPoints').value = '0';
-        }
+            try {
+                const { error } = await supabase
+                    .from('personel')
+                    .insert([{
+                        rank,
+                        name: name.trim(),
+                        points,
+                        color: selectedColor,
+                        created_date: new Date().toLocaleDateString('tr-TR')
+                    }]);
 
-        // Personel listesini göster
+                if (error) throw error;
+                
+                document.getElementById('inputName').value = '';
+                document.getElementById('inputPoints').value = '0';
+                await loadAllData();
+                alert('✅ ' + rank + '. ' + name + ' eklendi!');
+            } catch (e) {
+                alert('Hata: ' + e.message);
+            }
+        };
+
         function renderPersonList() {
             const list = document.getElementById('personList');
             document.getElementById('personCount').textContent = personData.length;
             
             if (personData.length === 0) {
-                list.innerHTML = '<div class="empty-state"><i class="fas fa-user-slash"></i><p>Henüz personel eklenmedi</p></div>';
+                list.innerHTML = '<div class="empty-state"><p>Henüz personel eklenmedi</p></div>';
                 return;
             }
             
@@ -300,96 +279,124 @@
                     <div class="person-badge" style="background: ${p.color}"></div>
                     <div class="person-info">
                         <div class="person-name">${p.rank}. ${p.name}</div>
-                        <div class="person-rank">Eklenme: ${p.createdDate}</div>
+                        <div class="person-rank">${p.created_date}</div>
                     </div>
                     <div class="person-points">${p.points}p</div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-danger btn-sm" onclick="deletePerson(${p.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="deletePerson(${p.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             `).join('');
         }
 
-        // Personel sil
-        function deletePerson(id) {
+        window.deletePerson = async function(id) {
             if (confirm('Silmek istediğinize emin misiniz?')) {
-                database.ref(`personel/${id}`).remove();
+                try {
+                    const { error } = await supabase
+                        .from('personel')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    await loadAllData();
+                } catch (e) {
+                    alert('Hata: ' + e.message);
+                }
             }
-        }
+        };
 
-        // Checklistleri güncelle
         function updateChecklists() {
-            // Liste hazırla
             const checklist = document.getElementById('checklist');
-            checklist.innerHTML = personData.length === 0 
-                ? '<div class="empty-state"><p>Önce personel ekleyiniz</p></div>'
-                : personData.map(p => `
-                    <label class="checkbox-item">
-                        <input type="checkbox" ${currentShift.members.includes(p.id) ? 'checked' : ''} 
-                            onchange="toggleMember(${p.id})">
-                        <div class="checkbox-name" style="color: ${p.color}">${p.rank}. ${p.name}</div>
-                    </label>
-                `).join('');
+            checklist.innerHTML = personData.map(p => `
+                <label class="checkbox-item">
+                    <input type="checkbox" ${currentShift.members.includes(p.id) ? 'checked' : ''} 
+                        onchange="toggleMember(${p.id})">
+                    <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
+                </label>
+            `).join('');
             
-            // Nöbetçi
             const nobList = document.getElementById('nobList');
             if (currentShift.members.length === 0) {
                 nobList.innerHTML = '<div class="empty-state"><p>Henüz personel seçilmedi</p></div>';
-                return;
+            } else {
+                nobList.innerHTML = personData
+                    .filter(p => currentShift.members.includes(p.id))
+                    .map(p => `
+                        <label class="checkbox-item">
+                            <input type="radio" name="nobetci" ${currentShift.nobetci === p.id ? 'checked' : ''} 
+                                onchange="setNobetci(${p.id})">
+                            <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
+                        </label>
+                    `).join('');
             }
             
-            nobList.innerHTML = personData
-                .filter(p => currentShift.members.includes(p.id))
-                .map(p => `
-                    <label class="checkbox-item">
-                        <input type="radio" name="nobetci" ${currentShift.nobetci === p.id ? 'checked' : ''} 
-                            onchange="setNobetci(${p.id})">
-                        <div class="checkbox-name" style="color: ${p.color}">${p.rank}. ${p.name}</div>
-                    </label>
-                `).join('');
-            
-            // Puan girişi
             updatePointsList();
         }
 
-        // Üye ekle/çıkar
-        function toggleMember(id) {
-            if (currentShift.members.includes(id)) {
-                currentShift.members = currentShift.members.filter(m => m !== id);
-            } else {
-                currentShift.members.push(id);
-            }
-            database.ref('shift').set(currentShift);
-        }
+        window.toggleMember = function(id) {
+            currentShift.members = currentShift.members.includes(id) 
+                ? currentShift.members.filter(m => m !== id)
+                : [...currentShift.members, id];
+            saveShift();
+            updateChecklists();
+        };
 
-        // Nöbetçi seç
-        function setNobetci(id) {
+        window.setNobetci = function(id) {
             currentShift.nobetci = id;
-            database.ref('shift').set(currentShift);
-        }
+            saveShift();
+        };
 
-        // Tarihi kaydet
-        function saveShiftDate() {
+        window.saveShiftDate = async function() {
             const date = document.getElementById('shiftDate').value;
             if (!date) {
                 alert('Lütfen tarihi seçiniz');
                 return;
             }
             currentShift.date = date;
-            database.ref('shift').set(currentShift);
-            alert('Vardiya tarihi kaydedildi');
+            await saveShift();
+            updateChecklists();
+            alert('✅ Vardiya tarihi kaydedildi');
+        };
+
+        async function saveShift() {
+            try {
+                const { data: existing } = await supabase
+                    .from('shift')
+                    .select('id')
+                    .eq('id', 1)
+                    .single();
+
+                if (existing) {
+                    await supabase
+                        .from('shift')
+                        .update({
+                            date: currentShift.date,
+                            members: currentShift.members,
+                            nobetci: currentShift.nobetci
+                        })
+                        .eq('id', 1);
+                } else {
+                    await supabase
+                        .from('shift')
+                        .insert([{
+                            id: 1,
+                            date: currentShift.date,
+                            members: currentShift.members,
+                            nobetci: currentShift.nobetci
+                        }]);
+                }
+            } catch (e) {
+                console.error('Vardiya kaydetme hatası:', e);
+            }
         }
 
-        // Puan listesini güncelle
         function updatePointsList() {
             const pointsList = document.getElementById('pointsList');
             const info = document.getElementById('pointsInfo');
             
             if (!currentShift.date) {
                 info.style.display = 'block';
-                info.innerHTML = '<i class="fas fa-info-circle"></i> Önce Liste Hazırla sekmesinden tarihi kaydediniz';
+                info.innerHTML = 'Önce Liste Hazırla sekmesinden tarihi kaydediniz';
                 pointsList.innerHTML = '';
                 return;
             }
@@ -398,7 +405,6 @@
             
             if (selectedMembers.length === 0) {
                 pointsList.innerHTML = '<div class="empty-state"><p>Henüz personel seçilmedi</p></div>';
-                info.style.display = 'none';
                 return;
             }
             
@@ -407,14 +413,13 @@
             
             pointsList.innerHTML = selectedMembers.map(p => `
                 <div class="point-input-group">
-                    <label style="margin: 0;"><div class="checkbox-name">${p.rank}. ${p.name}</div></label>
+                    <div style="font-weight: 600;">${p.rank}. ${p.name}</div>
                     <input type="number" class="point-input" data-id="${p.id}" value="0" min="0" />
                 </div>
             `).join('');
         }
 
-        // Puanları kaydet
-        function savePoints() {
+        window.savePoints = async function() {
             if (!currentShift.date) {
                 alert('Önce Liste Hazırla sekmesinden tarihi kaydediniz');
                 return;
@@ -422,7 +427,6 @@
             
             const inputs = document.querySelectorAll('.point-input');
             let totalPoints = 0;
-            const memberCount = inputs.length;
             const pointsMap = {};
             
             inputs.forEach(input => {
@@ -432,44 +436,44 @@
                 totalPoints += points;
             });
             
-            const avgPoints = memberCount > 0 ? Math.round((totalPoints / memberCount) * 10) / 10 : 0;
+            const avgPoints = inputs.length > 0 ? Math.round((totalPoints / inputs.length) * 10) / 10 : 0;
             
-            const updates = {};
-            personData.forEach(p => {
-                let newPoints = p.points;
-                
-                if (!currentShift.members.includes(p.id)) {
-                    newPoints += avgPoints;
-                } else if (pointsMap[p.id] !== undefined) {
-                    newPoints += pointsMap[p.id];
+            try {
+                for (const p of personData) {
+                    let newPoints = p.points;
+                    
+                    if (!currentShift.members.includes(p.id)) {
+                        newPoints += avgPoints;
+                    } else if (pointsMap[p.id] !== undefined) {
+                        newPoints += pointsMap[p.id];
+                    }
+                    
+                    await supabase
+                        .from('personel')
+                        .update({ points: newPoints })
+                        .eq('id', p.id);
                 }
                 
-                updates[`personel/${p.id}/points`] = newPoints;
-            });
-            
-            database.ref().update(updates);
-            alert(`Puanlar kaydedildi.\nOrtalama puan: ${avgPoints}p`);
-        }
+                await loadAllData();
+                alert(`✅ Puanlar kaydedildi.\nOrtalama: ${avgPoints}p`);
+            } catch (e) {
+                alert('Hata: ' + e.message);
+            }
+        };
 
-        // Nihai liste
         function renderFinalList() {
             document.getElementById('showDate').textContent = currentShift.date || '-';
             
             const selected = personData.filter(p => currentShift.members.includes(p.id));
             const finalList = document.getElementById('finalList');
-            
             document.getElementById('showCount').textContent = selected.length;
             
             if (selected.length === 0) {
-                finalList.innerHTML = '<div class="empty-state"><i class="fas fa-file-excel"></i><p>Liste hazır değil. Önce personel seçip puanlarını giriniz</p></div>';
+                finalList.innerHTML = '<div class="empty-state"><p>Liste hazır değil</p></div>';
                 return;
             }
             
-            const sorted = selected.sort((a, b) => {
-                if (b.points !== a.points) return b.points - a.points;
-                return Math.random() - 0.5;
-            });
-            
+            const sorted = selected.sort((a, b) => b.points - a.points || Math.random() - 0.5);
             const filtered = sorted.filter(p => p.id !== currentShift.nobetci);
             
             finalList.innerHTML = filtered.map((p, idx) => `
@@ -482,14 +486,18 @@
             
             if (currentShift.nobetci) {
                 const nob = personData.find(p => p.id === currentShift.nobetci);
-                finalList.innerHTML += `
-                    <div class="nob-section">
-                        <div class="nob-title">🔔 Nöbetçi Personel</div>
-                        <div class="nob-name">${nob.rank}. ${nob.name}</div>
-                    </div>
-                `;
+                if (nob) {
+                    finalList.innerHTML += `
+                        <div class="nob-section">
+                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 1rem;">🔔 NÖBETÇİ PERSONEL</div>
+                            <div class="nob-name">${nob.rank}. ${nob.name}</div>
+                        </div>
+                    `;
+                }
             }
         }
+
+        window.switchTab = switchTab;
     </script>
 </body>
 </html>

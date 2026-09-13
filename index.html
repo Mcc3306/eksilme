@@ -54,11 +54,12 @@
         .radio-item input:checked { accent-color: #f59e0b; }
         .radio-item.selected { border-color: #f59e0b; background: #fffbf0; }
         #finalListPrintable { background: white; padding: 0.5rem; }
-        .final-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; margin: 1rem 0; }
-        @media (max-width: 480px) { .final-grid { grid-template-columns: repeat(2, 1fr); gap: 0.3rem; } }
-        .final-item { padding: 0.6rem; border-radius: 6px; color: white; font-weight: 600; font-size: 11px; display: flex; align-items: center; justify-content: flex-start; gap: 0.5rem; min-height: 50px; }
-        .final-number { font-size: 18px; font-weight: 900; min-width: 25px; text-align: left; }
-        .final-name { font-size: 11px; word-break: break-word; line-height: 1.2; }
+        .final-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; margin: 1rem 0; }
+        @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.25rem; } }
+        @media (max-width: 480px) { .final-grid { grid-template-columns: repeat(2, 1fr); gap: 0.2rem; } }
+        .final-item { padding: 0.4rem; border-radius: 5px; color: white; font-weight: 600; font-size: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 55px; overflow: hidden; }
+        .final-number { font-size: 16px; font-weight: 900; margin-bottom: 0.2rem; }
+        .final-name { font-size: 8px; word-break: break-word; line-height: 1.1; text-align: center; }
         .nob-section { margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; font-weight: 600; }
         .nob-info { font-size: 12px; opacity: 0.9; }
         .nob-name { font-size: 18px; margin-top: 0.5rem; }
@@ -545,7 +546,7 @@
                 let displayNumber = 1;
                 sorted.forEach((p) => {
                     if (p.id !== currentShiftNobetci) {
-                        html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${displayNumber}</div><div class="final-name">${p.rank}.<br/>${p.name}</div></div>`;
+                        html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${displayNumber}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
                         displayNumber++;
                     }
                 });

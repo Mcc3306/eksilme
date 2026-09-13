@@ -94,6 +94,7 @@
                     <select id="inputRank">
                         <option value="Yzb">Yzb (Yüzbaşı)</option>
                         <option value="Bnb">Bnb (Binbaşı)</option>
+                        <option value="Ütğm">Ütğm (Üsteğmen)</option>
                         <option value="Tğm">Tğm (Teğmen)</option>
                         <option value="Alb">Alb (Albay)</option>
                         <option value="Yb">Yb (Yarbay)</option>
@@ -128,10 +129,7 @@
             </div>
             <button class="btn btn-primary" onclick="createNewShift()" style="margin-bottom: 2rem;"><i class="fas fa-save"></i> Bu Tarihin Vardiyasını Başlat</button>
             
-            <h3 style="margin-bottom: 1rem;">Katılacak Personeli Seçin (Renk Gruplarına Göre)</h3>
-            <div class="color-tabs" id="colorTabs"></div>
-            
-            <h3 style="margin-bottom: 1rem;">Personel Listesi</h3>
+            <h3 style="margin-bottom: 1rem;">Katılacak Personeli Seçin</h3>
             <div id="checklist"></div>
             
             <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Nöbetçi Seçin</h3>
@@ -179,6 +177,7 @@
                     <select id="editRank">
                         <option value="Yzb">Yzb (Yüzbaşı)</option>
                         <option value="Bnb">Bnb (Binbaşı)</option>
+                        <option value="Ütğm">Ütğm (Üsteğmen)</option>
                         <option value="Tğm">Tğm (Teğmen)</option>
                         <option value="Alb">Alb (Albay)</option>
                         <option value="Yb">Yb (Yarbay)</option>
@@ -246,7 +245,6 @@
                 const { data: persons } = await supabase.from('personel').select('*').order('created_date', { ascending: true });
                 personData = persons || [];
                 renderPersonList();
-                initColorTabs();
                 updateChecklists();
             } catch (e) {
                 console.error('Veri yükleme hatası:', e);
@@ -258,44 +256,11 @@
         }
 
         function initColorTabs() {
-            const colorTabs = document.getElementById('colorTabs');
-            colorTabs.innerHTML = '';
-            
-            // Tüm unique renkler - Set ile duplikatleri kaldır
-            const uniqueColorsSet = new Set(personData.map(p => p.color.trim().toUpperCase()));
-            const uniqueColors = Array.from(uniqueColorsSet).map(c => {
-                // Original rengi bul
-                return personData.find(p => p.color.trim().toUpperCase() === c)?.color || c;
-            }).sort();
-            
-            const allTab = document.createElement('div');
-            allTab.className = 'color-tab active';
-            allTab.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-            allTab.title = 'Tümü';
-            allTab.onclick = (e) => { 
-                document.querySelectorAll('.color-tab').forEach(t => t.classList.remove('active'));
-                allTab.classList.add('active');
-                filterByColor(null);
-            };
-            colorTabs.appendChild(allTab);
-            
-            uniqueColors.forEach(color => {
-                const tab = document.createElement('div');
-                tab.className = 'color-tab';
-                tab.style.background = color;
-                tab.title = color;
-                tab.onclick = (e) => { 
-                    document.querySelectorAll('.color-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    filterByColor(color);
-                };
-                colorTabs.appendChild(tab);
-            });
+            // Renk sekmesi kaldırıldı
         }
 
         function filterByColor(color) {
-            filteredByColor = color ? color.toUpperCase() : null;
-            updateChecklists();
+            // Renk filtreleme kaldırıldı - tüm personel gösterilir
         }
 
         function updateChecklists() {
@@ -426,11 +391,13 @@
         };
 
         function updateChecklists() {
-            const filtered = filteredByColor 
-                ? personData.filter(p => p.color.trim().toUpperCase() === filteredByColor)
-                : personData;
+            // Personelleri renk koduna göre sort et (aynı renkler gruplanır)
+            const sortedByColor = [...personData].sort((a, b) => {
+                return a.color.localeCompare(b.color);
+            });
+            
             const checklist = document.getElementById('checklist');
-            checklist.innerHTML = filtered.map(p => `
+            checklist.innerHTML = sortedByColor.map(p => `
                 <label class="checkbox-item">
                     <input type="checkbox" data-id="${p.id}" onchange="updateSelectedMembers()">
                     <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>

@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi</title>
+    <title>Vardiya Eksilme Listesi v2</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/+esm"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
+        html, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
         .header h1 { font-size: 28px; margin-bottom: 0.5rem; }
         .header p { opacity: 0.9; font-size: 14px; }
-        .status { display: inline-block; padding: 0.4rem 0.8rem; background: rgba(76, 175, 80, 0.5); border-radius: 20px; font-size: 12px; margin-top: 0.5rem; }
         .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; overflow-x: auto; flex-wrap: wrap; }
         .tab-btn { padding: 0.75rem 1.5rem; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; }
         .tab-btn:hover { border-color: #667eea; color: #667eea; }
@@ -31,9 +30,11 @@
         .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.5rem; }
         .btn-primary { background: #667eea; color: white; width: 100%; }
         .btn-primary:hover { background: #5568d3; }
+        .btn-secondary { background: #6B7280; color: white; }
+        .btn-secondary:hover { background: #4B5563; }
         .btn-danger { background: #ef4444; color: white; }
         .btn-danger:hover { background: #dc2626; }
-        .btn-sm { padding: 0.4rem 0.8rem; font-size: 12px; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 12px; width: auto; }
         .person-list { display: grid; gap: 1rem; margin-top: 1.5rem; }
         .person-item { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; display: flex; align-items: center; gap: 1rem; }
         .person-badge { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
@@ -44,35 +45,39 @@
         .checkbox-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; border: 1px solid #e0e0e0; }
         .checkbox-item input { width: 20px; height: 20px; accent-color: #667eea; cursor: pointer; }
         .checkbox-name { font-weight: 600; font-size: 14px; }
-        .final-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
-        .final-item { padding: 1.25rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        .final-number { min-width: 40px; text-align: center; font-size: 20px; background: rgba(255, 255, 255, 0.3); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        .final-name { flex: 1; }
-        .final-points { font-size: 14px; background: rgba(255, 255, 255, 0.2); padding: 0.4rem 0.8rem; border-radius: 4px; }
-        .nob-section { margin-top: 2rem; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; }
-        .nob-name { font-size: 24px; font-weight: 700; }
-        .point-input-group { display: grid; grid-template-columns: 1fr 100px; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; border: 1px solid #e0e0e0; }
-        .point-input-group input { padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; }
+        .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.5rem; }
+        .final-item { padding: 1rem; border-radius: 8px; color: white; font-weight: 600; text-align: center; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .nob-section { margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; }
+        .nob-name { font-size: 20px; font-weight: 700; margin-top: 0.5rem; }
+        .point-input-group { display: grid; grid-template-columns: 1fr 80px; gap: 0.75rem; margin-bottom: 0.75rem; padding: 0.75rem; background: #f9f9f9; border-radius: 8px; border: 1px solid #e0e0e0; }
+        .point-input-group input { padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .empty-state { text-align: center; padding: 3rem 1rem; color: #999; }
         .info-box { background: #e3f2fd; border-left: 4px solid #667eea; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; font-size: 14px; color: #1976d2; }
-        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        .history-item { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .history-item:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2); }
+        .history-date { font-weight: 600; font-size: 16px; color: #333; }
+        .history-count { font-size: 12px; color: #999; margin-top: 0.25rem; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 2rem; max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .modal-close { float: right; font-size: 28px; cursor: pointer; color: #999; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .final-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi</h1>
-            <p>Personel yönetimi ve vardiya planlaması sistemi</p>
-            <div class="status"><i class="fas fa-circle"></i> Çevrimiçi (Supabase)</div>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi v2</h1>
+            <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
         
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('isimler')"><i class="fas fa-users"></i> İsim Listesi</button>
-            <button class="tab-btn" onclick="switchTab('hazirla')"><i class="fas fa-clipboard"></i> Liste Hazırla</button>
-            <button class="tab-btn" onclick="switchTab('puan')"><i class="fas fa-chart-bar"></i> Puan Girişi</button>
-            <button class="tab-btn" onclick="switchTab('nobetci')"><i class="fas fa-user-check"></i> Nöbetçi</button>
+            <button class="tab-btn" onclick="switchTab('yonetim')"><i class="fas fa-calendar"></i> Vardiya Yönetimi</button>
+            <button class="tab-btn" onclick="switchTab('puan')"><i class="fas fa-chart-bar"></i> Puanlama</button>
+            <button class="tab-btn" onclick="switchTab('gecmis')"><i class="fas fa-history"></i> Geçmiş Vardiyalar</button>
             <button class="tab-btn" onclick="switchTab('nihai')"><i class="fas fa-list"></i> Nihai Liste</button>
         </div>
         
@@ -85,7 +90,8 @@
                     <select id="inputRank">
                         <option value="Yzb">Yzb (Yüzbaşı)</option>
                         <option value="Bnb">Bnb (Başçavuş)</option>
-                        <option value="Ütgm">Ütgm (Üstteğmen)</option>
+                        <option value="Tğm">Tğm (Teğmen)</option>
+                        <option value="Alb">Alb (Albay)</option>
                         <option value="Yb">Yb (Yarbay)</option>
                     </select>
                 </div>
@@ -109,31 +115,33 @@
             </div>
         </div>
         
-        <!-- LİSTE HAZIRLA -->
-        <div id="hazirla" class="tab-content">
-            <h2 style="margin-bottom: 1.5rem;">Vardiya Hazırlığı</h2>
+        <!-- VARDIYA YÖNETİMİ -->
+        <div id="yonetim" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">Yeni Vardiya Oluştur</h2>
             <div class="form-group">
                 <label>Vardiya Tarihi</label>
                 <input type="date" id="shiftDate" />
             </div>
-            <button class="btn btn-primary" onclick="saveShiftDate()"><i class="fas fa-save"></i> Tarihi Kaydet</button>
-            <h3 style="margin-bottom: 1rem; margin-top: 2rem;">Gelecek Personel Seçin</h3>
+            <button class="btn btn-primary" onclick="createNewShift()" style="margin-bottom: 2rem;"><i class="fas fa-save"></i> Bu Tarihin Vardiyasını Başlat</button>
+            
+            <h3 style="margin-bottom: 1rem;">Katılacak Personeli Seçin</h3>
             <div id="checklist"></div>
+            <button class="btn btn-primary" onclick="saveShiftMembers()" style="margin-top: 1.5rem;"><i class="fas fa-check"></i> Personel Seçimini Kaydet</button>
         </div>
         
-        <!-- PUAN GİRİŞİ -->
+        <!-- PUANLAMA -->
         <div id="puan" class="tab-content">
-            <h2 style="margin-bottom: 1.5rem;">Vardiya Puanı Girişi</h2>
+            <h2 style="margin-bottom: 1.5rem;">Puanlama</h2>
             <div id="pointsInfo" class="info-box" style="display:none;"></div>
-            <h3 style="margin-bottom: 1rem;">Personele Puan Verin</h3>
+            <h3 style="margin-bottom: 1rem;">Vardiya Personeline Puan Verin</h3>
             <div id="pointsList"></div>
-            <button class="btn btn-primary" onclick="savePoints()" style="margin-top: 1.5rem;"><i class="fas fa-calculator"></i> Puanları Kaydet ve Hesapla</button>
+            <button class="btn btn-primary" onclick="savePointsAndFinish()" style="margin-top: 1.5rem;"><i class="fas fa-save"></i> Puanları Kaydet ve Vardiyayı Tamamla</button>
         </div>
         
-        <!-- NÖBETÇİ -->
-        <div id="nobetci" class="tab-content">
-            <h2 style="margin-bottom: 1.5rem;">Nöbetçi Personel Seçimi</h2>
-            <div id="nobList"></div>
+        <!-- GEÇMIŞ VARDIYALAR -->
+        <div id="gecmis" class="tab-content">
+            <h2 style="margin-bottom: 1.5rem;">Geçmiş Vardiyalar</h2>
+            <div id="historyList"></div>
         </div>
         
         <!-- NİHAİ LİSTE -->
@@ -143,6 +151,39 @@
                 <strong>Tarih:</strong> <span id="showDate">-</span> | <strong>Toplam:</strong> <span id="showCount">0</span> personel
             </div>
             <div id="finalList"></div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeEditModal()">&times;</span>
+            <h3 style="margin-bottom: 1.5rem;">Personel Düzenle</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Rütbe</label>
+                    <select id="editRank">
+                        <option value="Yzb">Yzb (Yüzbaşı)</option>
+                        <option value="Bnb">Bnb (Başçavuş)</option>
+                        <option value="Tğm">Tğm (Teğmen)</option>
+                        <option value="Alb">Alb (Albay)</option>
+                        <option value="Yb">Yb (Yarbay)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ad Soyad</label>
+                    <input type="text" id="editName" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Puanı</label>
+                <input type="number" id="editPoints" />
+            </div>
+            <div class="form-group">
+                <label>Renk</label>
+                <div class="color-picker" id="editColorPicker"></div>
+            </div>
+            <button class="btn btn-primary" onclick="savePerson()"><i class="fas fa-save"></i> Kaydet</button>
         </div>
     </div>
 
@@ -156,11 +197,13 @@
 
         let personData = [];
         let selectedColor = '#3B82F6';
-        let currentShift = { date: '', members: [], nobetci: null };
+        let editingPersonId = null;
+        let currentShiftDate = null;
+        let currentShiftMembers = [];
+        let currentShiftNobetci = null;
         
         const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
 
-        // Başlat
         window.addEventListener('DOMContentLoaded', () => {
             initColorPicker();
             loadAllData();
@@ -174,7 +217,7 @@
                 div.className = `color-option ${color === selectedColor ? 'selected' : ''}`;
                 div.style.background = color;
                 div.onclick = () => {
-                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelectorAll('#colorPicker .color-option').forEach(o => o.classList.remove('selected'));
                     div.classList.add('selected');
                     selectedColor = color;
                 };
@@ -184,45 +227,18 @@
 
         async function loadAllData() {
             try {
-                const { data: persons, error: personError } = await supabase
-                    .from('personel')
-                    .select('*');
-                
-                if (personError) throw personError;
+                const { data: persons } = await supabase.from('personel').select('*');
                 personData = persons || [];
-
-                const { data: shift, error: shiftError } = await supabase
-                    .from('shift')
-                    .select('*')
-                    .eq('id', 1)
-                    .single();
-                
-                if (shift && !shiftError) {
-                    currentShift = {
-                        date: shift.date || '',
-                        members: shift.members || [],
-                        nobetci: shift.nobetci || null
-                    };
-                    document.getElementById('shiftDate').value = currentShift.date || '';
-                }
-
                 renderPersonList();
                 updateChecklists();
+                loadHistoryShifts();
             } catch (e) {
                 console.error('Veri yükleme hatası:', e);
             }
         }
 
         function subscribeToChanges() {
-            supabase
-                .channel('changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'personel' }, () => {
-                    loadAllData();
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'shift' }, () => {
-                    loadAllData();
-                })
-                .subscribe();
+            supabase.channel('changes').on('postgres_changes', { event: '*', schema: 'public', table: 'personel' }, () => loadAllData()).subscribe();
         }
 
         function switchTab(tabName) {
@@ -230,7 +246,9 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.closest('.tab-btn').classList.add('active');
+            
             if (tabName === 'nihai') renderFinalList();
+            if (tabName === 'gecmis') loadHistoryShifts();
         }
 
         window.addPerson = async function() {
@@ -238,24 +256,10 @@
             const name = document.getElementById('inputName').value;
             const points = parseInt(document.getElementById('inputPoints').value) || 0;
             
-            if (!name.trim()) {
-                alert('Ad soyad giriniz');
-                return;
-            }
+            if (!name.trim()) { alert('Ad soyad giriniz'); return; }
             
             try {
-                const { error } = await supabase
-                    .from('personel')
-                    .insert([{
-                        rank,
-                        name: name.trim(),
-                        points,
-                        color: selectedColor,
-                        created_date: new Date().toLocaleDateString('tr-TR')
-                    }]);
-
-                if (error) throw error;
-                
+                await supabase.from('personel').insert([{ rank, name: name.trim(), points, color: selectedColor, created_date: new Date().toLocaleDateString('tr-TR') }]);
                 document.getElementById('inputName').value = '';
                 document.getElementById('inputPoints').value = '0';
                 await loadAllData();
@@ -279,29 +283,70 @@
                     <div class="person-badge" style="background: ${p.color}"></div>
                     <div class="person-info">
                         <div class="person-name">${p.rank}. ${p.name}</div>
-                        <div class="person-rank">${p.created_date}</div>
+                        <div class="person-rank">Puan: ${p.points}</div>
                     </div>
-                    <div class="person-points">${p.points}p</div>
-                    <button class="btn btn-danger btn-sm" onclick="deletePerson(${p.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="openEditModal(${p.id})"><i class="fas fa-edit"></i> Düzenle</button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePerson(${p.id})"><i class="fas fa-trash"></i></button>
                 </div>
             `).join('');
         }
 
+        window.openEditModal = function(id) {
+            const person = personData.find(p => p.id === id);
+            if (!person) return;
+            
+            editingPersonId = id;
+            document.getElementById('editRank').value = person.rank;
+            document.getElementById('editName').value = person.name;
+            document.getElementById('editPoints').value = person.points;
+            
+            const editPicker = document.getElementById('editColorPicker');
+            editPicker.innerHTML = '';
+            colors.forEach(color => {
+                const div = document.createElement('div');
+                div.className = `color-option ${color === person.color ? 'selected' : ''}`;
+                div.style.background = color;
+                div.onclick = () => {
+                    document.querySelectorAll('#editColorPicker .color-option').forEach(o => o.classList.remove('selected'));
+                    div.classList.add('selected');
+                };
+                editPicker.appendChild(div);
+            });
+            
+            document.getElementById('editModal').classList.add('active');
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('editModal').classList.remove('active');
+            editingPersonId = null;
+        };
+
+        window.savePerson = async function() {
+            if (!editingPersonId) return;
+            
+            const rank = document.getElementById('editRank').value;
+            const name = document.getElementById('editName').value;
+            const points = parseInt(document.getElementById('editPoints').value) || 0;
+            const selectedColorEl = document.querySelector('#editColorPicker .color-option.selected');
+            const color = selectedColorEl ? selectedColorEl.style.background : '#3B82F6';
+            
+            try {
+                await supabase.from('personel').update({ rank, name, points, color }).eq('id', editingPersonId);
+                await loadAllData();
+                closeEditModal();
+                alert('✅ Personel güncellendi!');
+            } catch (e) {
+                alert('Hata: ' + e.message);
+            }
+        };
+
         window.deletePerson = async function(id) {
-            if (confirm('Silmek istediğinize emin misiniz?')) {
-                try {
-                    const { error } = await supabase
-                        .from('personel')
-                        .delete()
-                        .eq('id', id);
-                    
-                    if (error) throw error;
-                    await loadAllData();
-                } catch (e) {
-                    alert('Hata: ' + e.message);
-                }
+            if (!confirm('Silmek istediğinize emin misiniz?')) return;
+            try {
+                await supabase.from('personel').delete().eq('id', id);
+                await loadAllData();
+            } catch (e) {
+                alert('Hata: ' + e.message);
             }
         };
 
@@ -309,195 +354,188 @@
             const checklist = document.getElementById('checklist');
             checklist.innerHTML = personData.map(p => `
                 <label class="checkbox-item">
-                    <input type="checkbox" ${currentShift.members.includes(p.id) ? 'checked' : ''} 
-                        onchange="toggleMember(${p.id})">
+                    <input type="checkbox" data-id="${p.id}" onchange="updateSelectedMembers()">
                     <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
                 </label>
             `).join('');
-            
-            const nobList = document.getElementById('nobList');
-            if (currentShift.members.length === 0) {
-                nobList.innerHTML = '<div class="empty-state"><p>Henüz personel seçilmedi</p></div>';
-            } else {
-                nobList.innerHTML = personData
-                    .filter(p => currentShift.members.includes(p.id))
-                    .map(p => `
-                        <label class="checkbox-item">
-                            <input type="radio" name="nobetci" ${currentShift.nobetci === p.id ? 'checked' : ''} 
-                                onchange="setNobetci(${p.id})">
-                            <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
-                        </label>
-                    `).join('');
-            }
-            
-            updatePointsList();
         }
 
-        window.toggleMember = function(id) {
-            currentShift.members = currentShift.members.includes(id) 
-                ? currentShift.members.filter(m => m !== id)
-                : [...currentShift.members, id];
-            saveShift();
-            updateChecklists();
+        window.updateSelectedMembers = function() {
+            const checkboxes = document.querySelectorAll('#checklist input[type="checkbox"]:checked');
+            currentShiftMembers = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
         };
 
-        window.setNobetci = function(id) {
-            currentShift.nobetci = id;
-            saveShift();
-        };
-
-        window.saveShiftDate = async function() {
+        window.createNewShift = function() {
             const date = document.getElementById('shiftDate').value;
-            if (!date) {
-                alert('Lütfen tarihi seçiniz');
-                return;
-            }
-            currentShift.date = date;
-            await saveShift();
-            updateChecklists();
-            alert('✅ Vardiya tarihi kaydedildi');
+            if (!date) { alert('Lütfen tarihi seçiniz'); return; }
+            currentShiftDate = date;
+            alert('✅ Vardiya tarihi seçildi: ' + date);
         };
 
-        async function saveShift() {
+        window.saveShiftMembers = async function() {
+            if (!currentShiftDate) { alert('Önce tarihi seçiniz'); return; }
+            if (currentShiftMembers.length === 0) { alert('Lütfen personel seçiniz'); return; }
+            
             try {
-                const { data: existing } = await supabase
-                    .from('shift')
-                    .select('id')
-                    .eq('id', 1)
-                    .single();
-
-                if (existing) {
-                    await supabase
-                        .from('shift')
-                        .update({
-                            date: currentShift.date,
-                            members: currentShift.members,
-                            nobetci: currentShift.nobetci
-                        })
-                        .eq('id', 1);
-                } else {
-                    await supabase
-                        .from('shift')
-                        .insert([{
-                            id: 1,
-                            date: currentShift.date,
-                            members: currentShift.members,
-                            nobetci: currentShift.nobetci
-                        }]);
-                }
+                await supabase.from('shift').upsert([{ id: 1, date: currentShiftDate, members: currentShiftMembers, nobetci: null }]);
+                alert('✅ Personel seçimi kaydedildi! Puanlamaya geçin.');
             } catch (e) {
-                console.error('Vardiya kaydetme hatası:', e);
+                alert('Hata: ' + e.message);
             }
-        }
+        };
 
-        function updatePointsList() {
+        function renderPointsList() {
             const pointsList = document.getElementById('pointsList');
             const info = document.getElementById('pointsInfo');
             
-            if (!currentShift.date) {
+            try {
+                const shift = localStorage.getItem('currentShift') ? JSON.parse(localStorage.getItem('currentShift')) : { date: currentShiftDate, members: currentShiftMembers };
+                
+                if (!shift.date || !shift.members || shift.members.length === 0) {
+                    info.style.display = 'block';
+                    info.innerHTML = 'Önce Vardiya Yönetimi sekmesinden personel seçiniz';
+                    pointsList.innerHTML = '';
+                    return;
+                }
+                
+                const selectedMembers = personData.filter(p => shift.members.includes(p.id));
                 info.style.display = 'block';
-                info.innerHTML = 'Önce Liste Hazırla sekmesinden tarihi kaydediniz';
-                pointsList.innerHTML = '';
-                return;
+                info.innerHTML = `<strong>Tarih:</strong> ${shift.date} | <strong>Seçili:</strong> ${selectedMembers.length} kişi`;
+                
+                pointsList.innerHTML = selectedMembers.map(p => `
+                    <div class="point-input-group">
+                        <div style="font-weight: 600; color: ${p.color};">${p.rank}. ${p.name}</div>
+                        <input type="number" class="point-input" data-id="${p.id}" value="0" min="0" />
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error(e);
             }
-            
-            const selectedMembers = personData.filter(p => currentShift.members.includes(p.id));
-            
-            if (selectedMembers.length === 0) {
-                pointsList.innerHTML = '<div class="empty-state"><p>Henüz personel seçilmedi</p></div>';
-                return;
-            }
-            
-            info.style.display = 'block';
-            info.innerHTML = `<strong>Tarih:</strong> ${currentShift.date} | <strong>Seçili:</strong> ${selectedMembers.length} kişi`;
-            
-            pointsList.innerHTML = selectedMembers.map(p => `
-                <div class="point-input-group">
-                    <div style="font-weight: 600;">${p.rank}. ${p.name}</div>
-                    <input type="number" class="point-input" data-id="${p.id}" value="0" min="0" />
-                </div>
-            `).join('');
         }
 
-        window.savePoints = async function() {
-            if (!currentShift.date) {
-                alert('Önce Liste Hazırla sekmesinden tarihi kaydediniz');
-                return;
-            }
-            
+        window.savePointsAndFinish = async function() {
             const inputs = document.querySelectorAll('.point-input');
+            if (inputs.length === 0) { alert('Personel yüklenemedi'); return; }
+            
             let totalPoints = 0;
             const pointsMap = {};
+            const membersWithPoints = {};
             
             inputs.forEach(input => {
                 const points = parseInt(input.value) || 0;
                 const id = parseInt(input.dataset.id);
                 pointsMap[id] = points;
                 totalPoints += points;
+                const person = personData.find(p => p.id === id);
+                if (person) membersWithPoints[id] = { name: person.name, rank: person.rank, points: points };
             });
             
             const avgPoints = inputs.length > 0 ? Math.round((totalPoints / inputs.length) * 10) / 10 : 0;
             
             try {
+                const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
+                if (shift && shift.date && shift.members) {
+                    await supabase.from('shifts_history').upsert([{ date: shift.date, members_with_points: membersWithPoints, nobetci: shift.nobetci }]);
+                }
+                
                 for (const p of personData) {
                     let newPoints = p.points;
-                    
-                    if (!currentShift.members.includes(p.id)) {
+                    if (!currentShiftMembers.includes(p.id)) {
                         newPoints += avgPoints;
                     } else if (pointsMap[p.id] !== undefined) {
                         newPoints += pointsMap[p.id];
                     }
-                    
-                    await supabase
-                        .from('personel')
-                        .update({ points: newPoints })
-                        .eq('id', p.id);
+                    await supabase.from('personel').update({ points: newPoints }).eq('id', p.id);
                 }
                 
+                await supabase.from('shift').update({ members: [], nobetci: null }).eq('id', 1);
                 await loadAllData();
-                alert(`✅ Puanlar kaydedildi.\nOrtalama: ${avgPoints}p`);
+                currentShiftMembers = [];
+                currentShiftDate = null;
+                alert(`✅ Puanlar kaydedildi!\nOrtalama: ${avgPoints}p\nGelmeyenlere ${avgPoints}p eklendi`);
             } catch (e) {
                 alert('Hata: ' + e.message);
             }
         };
 
-        function renderFinalList() {
-            document.getElementById('showDate').textContent = currentShift.date || '-';
-            
-            const selected = personData.filter(p => currentShift.members.includes(p.id));
-            const finalList = document.getElementById('finalList');
-            document.getElementById('showCount').textContent = selected.length;
-            
-            if (selected.length === 0) {
-                finalList.innerHTML = '<div class="empty-state"><p>Liste hazır değil</p></div>';
-                return;
-            }
-            
-            const sorted = selected.sort((a, b) => b.points - a.points || Math.random() - 0.5);
-            const filtered = sorted.filter(p => p.id !== currentShift.nobetci);
-            
-            finalList.innerHTML = filtered.map((p, idx) => `
-                <div class="final-item" style="background: ${p.color};">
-                    <div class="final-number">${idx + 1}</div>
-                    <div class="final-name">${p.rank}. ${p.name}</div>
-                    <div class="final-points">${p.points}p</div>
-                </div>
-            `).join('');
-            
-            if (currentShift.nobetci) {
-                const nob = personData.find(p => p.id === currentShift.nobetci);
-                if (nob) {
-                    finalList.innerHTML += `
-                        <div class="nob-section">
-                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 1rem;">🔔 NÖBETÇİ PERSONEL</div>
-                            <div class="nob-name">${nob.rank}. ${nob.name}</div>
-                        </div>
-                    `;
+        async function loadHistoryShifts() {
+            try {
+                const { data: shifts } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
+                const list = document.getElementById('historyList');
+                
+                if (!shifts || shifts.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><p>Henüz kaydedilmiş vardiya yok</p></div>';
+                    return;
                 }
+                
+                list.innerHTML = shifts.map(s => `
+                    <div class="history-item" onclick="showHistoryDetails('${s.date}')">
+                        <div class="history-date">${s.date}</div>
+                        <div class="history-count">${Object.keys(s.members_with_points || {}).length} personel</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        window.showHistoryDetails = async function(date) {
+            try {
+                const { data: shift } = await supabase.from('shifts_history').select('*').eq('date', date).single();
+                if (!shift || !shift.members_with_points) return;
+                
+                const members = Object.values(shift.members_with_points);
+                const sorted = members.sort((a, b) => b.points - a.points);
+                
+                alert('Vardiya: ' + date + '\n\n' + sorted.map((m, i) => `${i+1}. ${m.rank}. ${m.name} (${m.points}p)`).join('\n'));
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        function renderFinalList() {
+            try {
+                const shift = localStorage.getItem('currentShift') ? JSON.parse(localStorage.getItem('currentShift')) : { date: currentShiftDate, members: currentShiftMembers };
+                
+                const selected = personData.filter(p => shift.members.includes(p.id));
+                const finalList = document.getElementById('finalList');
+                
+                document.getElementById('showDate').textContent = shift.date || '-';
+                document.getElementById('showCount').textContent = selected.length;
+                
+                if (selected.length === 0) {
+                    finalList.innerHTML = '<div class="empty-state"><p>Liste hazır değil</p></div>';
+                    return;
+                }
+                
+                const sorted = selected.sort((a, b) => b.points - a.points || Math.random() - 0.5);
+                
+                let html = '<div class="final-grid">';
+                sorted.forEach((p, idx) => {
+                    html += `<div class="final-item" style="background: ${p.color};"><strong>${idx + 1}</strong><br>${p.rank}. ${p.name}</div>`;
+                });
+                html += '</div>';
+                
+                finalList.innerHTML = html;
+                
+                if (shift.nobetci) {
+                    const nob = personData.find(p => p.id === shift.nobetci);
+                    if (nob) {
+                        finalList.innerHTML += `<div class="nob-section"><div style="font-size: 12px;">🔔 NÖBETÇİ</div><div class="nob-name">${nob.rank}. ${nob.name}</div></div>`;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
             }
         }
 
         window.switchTab = switchTab;
+        
+        // Puanlamaya geçince listesini yükle
+        const puanTab = document.querySelector('[onclick="switchTab(\'puan\')"]');
+        if (puanTab) {
+            puanTab.addEventListener('click', renderPointsList);
+        }
     </script>
 </body>
 </html>

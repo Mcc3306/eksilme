@@ -56,10 +56,10 @@
         #finalListPrintable { background: white; padding: 0.5rem; }
         .final-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; margin: 1rem 0; }
         @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.25rem; } }
-        @media (max-width: 480px) { .final-grid { grid-template-columns: repeat(2, 1fr); gap: 0.2rem; } }
-        .final-item { padding: 0.4rem; border-radius: 5px; color: white; font-weight: 600; font-size: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 55px; overflow: hidden; }
-        .final-number { font-size: 16px; font-weight: 900; margin-bottom: 0.2rem; }
-        .final-name { font-size: 8px; word-break: break-word; line-height: 1.1; text-align: center; }
+        @media (max-width: 600px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.2rem; } }
+        .final-item { padding: 0.3rem; border-radius: 4px; color: white; font-weight: 600; font-size: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50px; overflow: hidden; }
+        .final-number { font-size: 14px; font-weight: 900; margin-bottom: 0.15rem; }
+        .final-name { font-size: 7px; word-break: break-word; line-height: 1; text-align: center; }
         .nob-section { margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; font-weight: 600; }
         .nob-info { font-size: 12px; opacity: 0.9; }
         .nob-name { font-size: 18px; margin-top: 0.5rem; }
@@ -243,7 +243,7 @@
 
         async function loadAllData() {
             try {
-                const { data: persons } = await supabase.from('personel').select('*').order('created_date', { ascending: true });
+                const { data: persons } = await supabase.from('personel').select('*');
                 personData = persons || [];
                 renderPersonList();
                 updateChecklists();
@@ -392,7 +392,7 @@
         };
 
         function updateChecklists() {
-            // Personelleri renk koduna göre sort et (aynı renkler gruplanır)
+            // Personelleri renk koduna göre sort et (her açılışında - düzenleme sonrası yakala)
             const sortedByColor = [...personData].sort((a, b) => {
                 return a.color.localeCompare(b.color);
             });
@@ -525,7 +525,6 @@
 
         async function renderFinalList() {
             try {
-                // Shift verilerini Supabase'ten çek
                 const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
                 
                 if (!shift || !shift.date || !shift.members || shift.members.length === 0) {
@@ -537,8 +536,12 @@
                 currentShiftMembers = shift.members;
                 currentShiftNobetci = shift.nobetci;
                 
+                // Personelleri renk sırasına göre sort et
                 const selected = personData.filter(p => currentShiftMembers.includes(p.id));
-                const sorted = selected.sort((a, b) => b.points - a.points || Math.random() - 0.5);
+                const sortedByColor = selected.sort((a, b) => {
+                    return a.color.localeCompare(b.color);
+                });
+                const sorted = sortedByColor.sort((a, b) => b.points - a.points);
                 
                 let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong style="font-size: 14px;">Vardiya Tarihi: ${currentShiftDate}</strong></div>`;
                 html += '<div class="final-grid">';

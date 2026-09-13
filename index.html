@@ -242,11 +242,11 @@
 
         async function loadAllData() {
             try {
-                const { data: persons } = await supabase.from('personel').select('*');
+                const { data: persons } = await supabase.from('personel').select('*').order('created_date', { ascending: true });
                 personData = persons || [];
                 renderPersonList();
-                updateChecklists();
                 initColorTabs();
+                updateChecklists();
             } catch (e) {
                 console.error('Veri yükleme hatası:', e);
             }
@@ -260,12 +260,12 @@
             const colorTabs = document.getElementById('colorTabs');
             colorTabs.innerHTML = '';
             
-            // Exact duplicate renkler - RGB parse et
-            const colorMap = new Map();
-            personData.forEach(p => {
-                colorMap.set(p.color.toUpperCase(), p.color);
-            });
-            const uniqueColors = Array.from(colorMap.values()).sort();
+            // Tüm unique renkler - Set ile duplikatleri kaldır
+            const uniqueColorsSet = new Set(personData.map(p => p.color.trim().toUpperCase()));
+            const uniqueColors = Array.from(uniqueColorsSet).map(c => {
+                // Original rengi bul
+                return personData.find(p => p.color.trim().toUpperCase() === c)?.color || c;
+            }).sort();
             
             const allTab = document.createElement('div');
             allTab.className = 'color-tab active';
@@ -282,6 +282,7 @@
                 const tab = document.createElement('div');
                 tab.className = 'color-tab';
                 tab.style.background = color;
+                tab.title = color;
                 tab.onclick = (e) => { 
                     document.querySelectorAll('.color-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
@@ -292,8 +293,24 @@
         }
 
         function filterByColor(color) {
-            filteredByColor = color;
+            filteredByColor = color ? color.toUpperCase() : null;
             updateChecklists();
+        }
+
+        function updateChecklists() {
+            const filtered = filteredByColor 
+                ? personData.filter(p => p.color.trim().toUpperCase() === filteredByColor)
+                : personData;
+            
+            const checklist = document.getElementById('checklist');
+            checklist.innerHTML = filtered.map(p => `
+                <label class="checkbox-item">
+                    <input type="checkbox" data-id="${p.id}" onchange="updateSelectedMembers()">
+                    <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
+                </label>
+            `).join('');
+            
+            updateNobList();
         }
 
         function switchTab(tabName) {
@@ -405,7 +422,9 @@
         };
 
         function updateChecklists() {
-            const filtered = filteredByColor ? personData.filter(p => p.color === filteredByColor) : personData;
+            const filtered = filteredByColor 
+                ? personData.filter(p => p.color.trim().toUpperCase() === filteredByColor)
+                : personData;
             const checklist = document.getElementById('checklist');
             checklist.innerHTML = filtered.map(p => `
                 <label class="checkbox-item">
@@ -532,36 +551,48 @@
             }
         };
 
-        function renderFinalList() {
-            if (!currentShiftDate || currentShiftMembers.length === 0) {
-                document.getElementById('finalList').innerHTML = '<div class="empty-state"><p>Liste hazır değil</p></div>';
-                return;
-            }
-            
-            const selected = personData.filter(p => currentShiftMembers.includes(p.id));
-            const sorted = selected.sort((a, b) => b.points - a.points || Math.random() - 0.5);
-            
-            let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong style="font-size: 14px;">Vardiya Tarihi: ${currentShiftDate}</strong></div>`;
-            html += '<div class="final-grid">';
-            
-            let displayNumber = 1;
-            sorted.forEach((p, idx) => {
-                if (p.id !== currentShiftNobetci) {
-                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${displayNumber}</div><div class="final-name">${p.rank}.<br/>${p.name}</div></div>`;
-                    displayNumber++;
+        async function renderFinalList() {
+            try {
+                // Shift verilerini Supabase'ten çek
+                const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
+                
+                if (!shift || !shift.date || !shift.members || shift.members.length === 0) {
+                    document.getElementById('finalList').innerHTML = '<div class="empty-state"><p>Liste hazır değil. Vardiya Yönetimi sekmesinden personel seçip kaydediniz.</p></div>';
+                    return;
                 }
-            });
-            
-            html += '</div>';
-            
-            if (currentShiftNobetci) {
-                const nob = personData.find(p => p.id === currentShiftNobetci);
-                if (nob) {
-                    html += `<div class="nob-section"><div class="nob-info">🔔 NÖBETÇİ</div><div class="nob-name">${nob.rank}. ${nob.name}</div></div>`;
+                
+                currentShiftDate = shift.date;
+                currentShiftMembers = shift.members;
+                currentShiftNobetci = shift.nobetci;
+                
+                const selected = personData.filter(p => currentShiftMembers.includes(p.id));
+                const sorted = selected.sort((a, b) => b.points - a.points || Math.random() - 0.5);
+                
+                let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong style="font-size: 14px;">Vardiya Tarihi: ${currentShiftDate}</strong></div>`;
+                html += '<div class="final-grid">';
+                
+                let displayNumber = 1;
+                sorted.forEach((p) => {
+                    if (p.id !== currentShiftNobetci) {
+                        html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${displayNumber}</div><div class="final-name">${p.rank}.<br/>${p.name}</div></div>`;
+                        displayNumber++;
+                    }
+                });
+                
+                html += '</div>';
+                
+                if (currentShiftNobetci) {
+                    const nob = personData.find(p => p.id === currentShiftNobetci);
+                    if (nob) {
+                        html += `<div class="nob-section"><div class="nob-info">🔔 NÖBETÇİ</div><div class="nob-name">${nob.rank}. ${nob.name}</div></div>`;
+                    }
                 }
+                
+                document.getElementById('finalList').innerHTML = html;
+            } catch (e) {
+                console.error('Nihai liste hatası:', e);
+                document.getElementById('finalList').innerHTML = '<div class="empty-state"><p>Veri yüklenemedi</p></div>';
             }
-            
-            document.getElementById('finalList').innerHTML = html;
         }
 
         window.downloadAsImage = async function() {

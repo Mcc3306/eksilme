@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v6.4</title>
+    <title>Vardiya Eksilme Listesi v6.5</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.4</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.5</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -568,35 +568,48 @@ Emin misiniz?
             }
             
             try {
-                // Seçilenlere puan ekle
+                // 1. Seçilenlere puan ekle
+                console.log('Step 1: Seçilenlere puan ekle...');
                 for (let id of memberIds) {
                     const person = personData.find(p => p.id === id);
                     if (person) {
                         const newPoints = (person.points || 0) + pointsData[id];
                         await supabase.from('personel').update({ points: newPoints }).eq('id', id);
+                        console.log(`${person.rank}. ${person.name}: ${person.points} + ${pointsData[id]} = ${newPoints}`);
                     }
                 }
                 
-                // Seçilmeyenlere ortalama puan ekle
+                // 2. Seçilmeyenlere ortalama puan ekle
+                console.log('Step 2: Seçilmeyenlere ortalama puan ekle...');
                 const allPersons = personData.filter(p => !memberIds.includes(p.id));
                 for (let p of allPersons) {
                     const newPoints = (p.points || 0) + avgPoints;
                     await supabase.from('personel').update({ points: newPoints }).eq('id', p.id);
+                    console.log(`${p.rank}. ${p.name}: ${p.points} + ${avgPoints} = ${newPoints}`);
                 }
                 
-                // Geçmiş vardiyayı güncelle (puanlar kaydedildi olarak işaretle)
-                await supabase.from('shifts_history').update({ 
+                // 3. Geçmiş vardiyayı güncelle - completed = true
+                console.log('Step 3: Vardiyayı tamamlandı olarak işaretle...');
+                const { error } = await supabase.from('shifts_history').update({ 
                     members_with_points: pointsData,
                     completed: true 
                 }).eq('date', shiftDate);
                 
-                console.log('Vardiya kaydedildi ve completed=true yapıldı:', shiftDate);
+                if (error) {
+                    console.error('UPDATE ERROR:', error);
+                    throw error;
+                }
                 
+                console.log('✅ Tüm işlemler başarılı!');
                 alert('✅ Puanlama kaydedildi!\n\nSeçilmeyenlere ' + avgPoints + ' puan eklendi');
+                
+                // 4. UI'yi yenile
                 selectedPointTab = null;
                 window.loadAllData();
+                await new Promise(r => setTimeout(r, 500)); // 500ms bekle
                 window.renderPointsList();
                 window.renderHistoryList();
+                
             } catch (e) {
                 alert('❌ Hata: ' + e.message);
                 console.error('savePointsAndFinish Error:', e);
@@ -617,38 +630,50 @@ Emin misiniz?
             }
             
             try {
+                console.log('Step 1: Tüm seçilenlere 0 puan yaz...');
+                
                 // Tüm seçilenlere 0 puan
                 const pointsData = {};
                 memberIds.forEach(id => {
                     pointsData[id] = 0;
                 });
                 
-                // Seçilmeyenlere 0 ekle (ortalama = 0)
+                // Seçilmeyenlere 0 puan (ortalama = 0)
+                console.log('Step 2: Seçilmeyenlere 0 puan yaz...');
                 const allPersons = personData.filter(p => !memberIds.includes(p.id));
                 for (let p of allPersons) {
                     await supabase.from('personel').update({ points: p.points || 0 }).eq('id', p.id);
                 }
                 
-                // Geçmiş vardiyayı güncelle
-                await supabase.from('shifts_history').update({ 
+                // Vardiyayı completed = true ile işaretle
+                console.log('Step 3: Vardiyayı tamamlandı olarak işaretle...');
+                const { error } = await supabase.from('shifts_history').update({ 
                     members_with_points: pointsData,
                     completed: true 
                 }).eq('date', shiftDate);
                 
-                console.log('Boş vardiya tamamlandı:', shiftDate);
+                if (error) {
+                    console.error('UPDATE ERROR:', error);
+                    throw error;
+                }
                 
+                console.log('✅ Tüm işlemler başarılı!');
                 alert('✅ Vardiya boş bırakıldı (0 puan)');
+                
+                // UI'yi yenile
                 selectedPointTab = null;
                 window.loadAllData();
+                await new Promise(r => setTimeout(r, 500)); // 500ms bekle
                 window.renderPointsList();
                 window.renderHistoryList();
+                
             } catch (e) {
                 alert('❌ Hata: ' + e.message);
                 console.error('skipScoringFinish Error:', e);
             }
         };
 
-        // Geçmiş Vardiyalar - v6: Salt okunur özet
+        // Geçmiş Vardiyalar - v6.5: Debug log + tamamlanma durumu
         window.renderHistoryList = async function() {
             try {
                 const { data } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
@@ -659,14 +684,20 @@ Emin misiniz?
                     return;
                 }
                 
+                console.log('Geçmiş vardiyalar:', data);
+                
                 let html = '';
                 for (let h of data) {
                     const memberIds = Object.keys(h.members_with_points || {}).map(id => parseInt(id));
                     const selected = personData.filter(p => memberIds.includes(p.id));
                     
+                    console.log(`Tarih: ${h.date}, Personel: ${memberIds.length}, Tamamlandı: ${h.completed}`);
+                    
                     html += `<div class="person-card" style="border-left: 5px solid #667eea; margin-bottom: 1rem;">
                         <h3>📅 ${formatDate(h.date)}</h3>
-                        <p style="color: #666; font-size: 12px; margin: 0.5rem 0;">Katılanlar: ${selected.length}</p>
+                        <p style="color: #666; font-size: 12px; margin: 0.5rem 0;">
+                            Katılanlar: ${selected.length} | ${h.completed ? '✅ Tamamlandı' : '⏳ Devam Ediyor'}
+                        </p>
                         <div style="font-size: 12px; background: #f5f5f5; padding: 0.75rem; border-radius: 6px; margin-top: 0.75rem;">
                             ${selected.map(p => `
                                 <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
@@ -690,6 +721,7 @@ Emin misiniz?
                 
                 list.innerHTML = html;
             } catch (e) {
+                console.error('renderHistoryList Error:', e);
                 document.getElementById('historyList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }
         };

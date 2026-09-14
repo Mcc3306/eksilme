@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v5.0</title>
+    <title>Vardiya Eksilme Listesi v5.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -51,7 +51,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v5.0</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v5.1</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -325,23 +325,43 @@
             if (currentShiftMembers.length === 0) { alert('Lütfen personel seçiniz'); return; }
             
             try {
+                console.log('Kaydetme:', { date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci });
                 await supabase.from('shift').upsert([{ id: 1, date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci }]);
+                alert('✅ Vardiya kaydedildi! ' + currentShiftMembers.length + ' kişi seçildi');
                 window.switchTab('puan');
             } catch (e) {
                 alert('Hata: ' + e.message);
+                console.error('SaveShift Error:', e);
             }
         };
 
         // Puanlama
-        window.renderPointsList = function() {
+        window.renderPointsList = async function() {
+            console.log('renderPointsList çağrıldı. currentShiftMembers:', currentShiftMembers);
+            
+            // Eğer currentShiftMembers boşsa, Supabase'ten çek
             if (!currentShiftMembers || currentShiftMembers.length === 0) {
-                document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>⚠️ Önce Vardiya Yönetimi sekmesinden personel seçip kaydediniz</p></div>';
+                try {
+                    const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
+                    if (shift && shift.members) {
+                        currentShiftDate = shift.date;
+                        currentShiftMembers = shift.members;
+                        currentShiftNobetci = shift.nobetci;
+                        console.log('Supabase\'ten yüklendi:', shift);
+                    }
+                } catch (e) {
+                    console.error('Shift yükleme hatası:', e);
+                }
+            }
+            
+            if (!currentShiftMembers || currentShiftMembers.length === 0) {
+                document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>⚠️ Önce Vardiya Yönetimi sekmesinden personel seçip <strong>KAYDET</strong> butonuna tıklayınız</p></div>';
                 return;
             }
             
             const selected = personData.filter(p => currentShiftMembers.includes(p.id));
             const list = document.getElementById('pointsList');
-            list.innerHTML = selected.map(p => `
+            list.innerHTML = '<h3 style="margin-bottom: 1rem;">Personellere Puan Veriniz</h3>' + selected.map(p => `
                 <div class="form-group">
                     <label>${p.rank}. ${p.name}</label>
                     <input type="number" id="puan-${p.id}" min="0" max="20" value="0" placeholder="Puan girin">

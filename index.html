@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v6</title>
+    <title>Vardiya Eksilme Listesi v6.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.1</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -83,6 +83,10 @@
             <div class="form-group">
                 <label>Ad-Soyad</label>
                 <input type="text" id="inputName" placeholder="Ad-Soyad girin">
+            </div>
+            <div class="form-group">
+                <label>Başlangıç Puanı</label>
+                <input type="number" id="inputInitialPoints" min="0" value="0" placeholder="Başlangıç puanı (varsayılan: 0)">
             </div>
             <div class="form-group">
                 <label>Renk</label>
@@ -153,6 +157,10 @@
                 <input type="text" id="editName">
             </div>
             <div class="form-group">
+                <label>Mevcut Puan</label>
+                <input type="number" id="editPoints" min="0" placeholder="Puanı düzenle">
+            </div>
+            <div class="form-group">
                 <label>Renk</label>
                 <input type="color" id="editColor">
             </div>
@@ -205,13 +213,16 @@
             const rank = document.getElementById('inputRank').value;
             const name = document.getElementById('inputName').value;
             const color = document.getElementById('inputColor').value;
+            const initialPoints = parseInt(document.getElementById('inputInitialPoints').value) || 0;
             
             if (!name) { alert('Lütfen ad-soyad girin'); return; }
             
             try {
-                await supabase.from('personel').insert([{ rank, name, color }]);
+                await supabase.from('personel').insert([{ rank, name, color, points: initialPoints }]);
                 document.getElementById('inputName').value = '';
+                document.getElementById('inputInitialPoints').value = '0';
                 window.loadAllData();
+                alert('✅ ' + rank + '. ' + name + ' başlangıç puanı: ' + initialPoints + ' olarak eklendi');
             } catch (e) {
                 alert('Hata: ' + e.message);
             }
@@ -248,6 +259,7 @@
             editingPersonId = id;
             document.getElementById('editRank').value = person.rank;
             document.getElementById('editName').value = person.name;
+            document.getElementById('editPoints').value = person.points || 0;
             document.getElementById('editColor').value = person.color;
             document.getElementById('editModal').classList.add('active');
         };
@@ -260,11 +272,13 @@
             const rank = document.getElementById('editRank').value;
             const name = document.getElementById('editName').value;
             const color = document.getElementById('editColor').value;
+            const points = parseInt(document.getElementById('editPoints').value) || 0;
             
             try {
-                await supabase.from('personel').update({ rank, name, color }).eq('id', editingPersonId);
+                await supabase.from('personel').update({ rank, name, color, points }).eq('id', editingPersonId);
                 window.closeEditModal();
                 window.loadAllData();
+                alert('✅ Personel güncellendi');
             } catch (e) {
                 alert('Hata: ' + e.message);
             }

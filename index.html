@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v6.1</title>
+    <title>Vardiya Eksilme Listesi v6.2</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.1</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.2</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -194,6 +194,34 @@
         let currentShiftNobetci = null;
         let editingPersonId = null;
         const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
+        
+        // Rütbe sırası (v6.2)
+        const rankOrder = ['Alb', 'Yb', 'Bnb', 'Yzb', 'Ütğm', 'Tğm'];
+        
+        // Shuffle fonksiyonu (aynı puana sahip olanları rastgele sırala)
+        function shuffleByPoints(arr) {
+            const result = [];
+            const grouped = {};
+            
+            // Puanlara göre grupla
+            arr.forEach(item => {
+                const key = item.points || 0;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+            
+            // Her puan grubunu shuffle et ve sonuca ekle
+            Object.keys(grouped).sort((a, b) => b - a).forEach(points => {
+                const group = grouped[points];
+                for (let i = group.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [group[i], group[j]] = [group[j], group[i]];
+                }
+                result.push(...group);
+            });
+            
+            return result;
+        }
 
         // Tab Yönetimi
         window.switchTab = function(tabName) {
@@ -306,9 +334,15 @@
         };
 
         window.updateChecklists = function() {
-            const sortedByColor = [...personData].sort((a, b) => a.color.localeCompare(b.color));
+            // Personelleri rütbeye göre sort et (v6.2)
+            const sortedByRank = [...personData].sort((a, b) => {
+                const rankIndexA = rankOrder.indexOf(a.rank);
+                const rankIndexB = rankOrder.indexOf(b.rank);
+                return rankIndexA - rankIndexB;
+            });
+            
             const checklist = document.getElementById('checklist');
-            checklist.innerHTML = sortedByColor.map(p => `
+            checklist.innerHTML = sortedByRank.map(p => `
                 <label class="checkbox-item">
                     <input type="checkbox" data-id="${p.id}" onchange="window.updateSelectedMembers()">
                     <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
@@ -432,7 +466,14 @@
                 
                 // Seçilen personeller
                 const memberIds = Object.keys(shift.members_with_points || {}).map(id => parseInt(id));
-                const selected = personData.filter(p => memberIds.includes(p.id));
+                let selected = personData.filter(p => memberIds.includes(p.id));
+                
+                // v6.2: Rütbeye göre sort et
+                selected = selected.sort((a, b) => {
+                    const rankIndexA = rankOrder.indexOf(a.rank);
+                    const rankIndexB = rankOrder.indexOf(b.rank);
+                    return rankIndexA - rankIndexB;
+                });
                 
                 // Puan girişi HTML'i
                 const html = '<h3 style="margin-bottom: 1rem;">Personellere Puan Veriniz (Vardiya: ' + formatDate(date) + ')</h3>' + 
@@ -577,10 +618,9 @@ Emin misiniz?
                 }
 
                 const selected = personData.filter(p => shift.members.includes(p.id));
-                const sorted = selected.sort((a, b) => {
-                    if (a.color !== b.color) return a.color.localeCompare(b.color);
-                    return b.points - a.points;
-                });
+                
+                // v6.2: Puan sırasına göre sort + aynı puanlıları shuffle et
+                const sorted = shuffleByPoints(selected);
 
                 let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div><div class="final-grid">`;
                 let num = 1;

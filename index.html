@@ -54,12 +54,12 @@
         .radio-item input:checked { accent-color: #f59e0b; }
         .radio-item.selected { border-color: #f59e0b; background: #fffbf0; }
         #finalListPrintable { background: white; padding: 0.5rem; }
-        .final-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; margin: 1rem 0; }
-        @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.25rem; } }
-        @media (max-width: 600px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.2rem; } }
-        .final-item { padding: 0.3rem; border-radius: 4px; color: white; font-weight: 600; font-size: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50px; overflow: hidden; }
-        .final-number { font-size: 14px; font-weight: 900; margin-bottom: 0.15rem; }
-        .final-name { font-size: 7px; word-break: break-word; line-height: 1; text-align: center; }
+        .final-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; margin: 1rem 0; }
+        @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.2rem; } }
+        @media (max-width: 600px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.15rem; } }
+        .final-item { padding: 0.25rem; border-radius: 3px; color: white; font-weight: 600; font-size: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 48px; overflow: hidden; }
+        .final-number { font-size: 13px; font-weight: 900; margin-bottom: 0.1rem; }
+        .final-name { font-size: 6.5px; word-break: break-word; line-height: 0.95; text-align: center; }
         .nob-section { margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; text-align: center; font-weight: 600; }
         .nob-info { font-size: 12px; opacity: 0.9; }
         .nob-name { font-size: 18px; margin-top: 0.5rem; }
@@ -74,7 +74,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi v3</h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v5.0</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
         
@@ -205,7 +205,14 @@
         // Supabase CDN
         const { createClient } = window.supabase;
 
-        const supabaseUrl = 'https://vyltlhuwjmqxcoympmhu.supabase.co';
+        // Tarih format fonksiyonu
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('-');
+            const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+            const monthName = months[parseInt(month) - 1];
+            return `${day} ${monthName} ${year}`;
+        }
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bHRsaHV3am1xeGNveW1wbWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMzc4NzcsImV4cCI6MjEwNDgxMzg3N30.3Tz3Kddqohhxa3pRijMkPZPowbSHsOEwYkZ2dCxlpSM';
 
         const supabase = createClient(supabaseUrl, supabaseKey);
@@ -548,7 +555,7 @@
                 });
                 const sorted = sortedByColor.sort((a, b) => b.points - a.points);
                 
-                let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong style="font-size: 14px;">Vardiya Tarihi: ${currentShiftDate}</strong></div>`;
+                let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong style="font-size: 14px;">Vardiya Tarihi: ${formatDate(currentShiftDate)}</strong></div>`;
                 html += '<div class="final-grid">';
                 
                 let displayNumber = 1;
@@ -600,7 +607,7 @@
                         try {
                             await navigator.share({
                                 title: 'Vardiya Listesi',
-                                text: 'Vardiya Tarihi: ' + currentShiftDate,
+                                text: 'Vardiya Tarihi: ' + formatDate(currentShiftDate),
                                 files: [file]
                             });
                         } catch (err) {

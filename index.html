@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v5.1</title>
+    <title>Vardiya Eksilme Listesi v6</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,6 +16,9 @@
         .tab-btn { padding: 0.75rem 1.5rem; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; white-space: nowrap; }
         .tab-btn:hover { border-color: #667eea; color: #667eea; }
         .tab-btn.active { background: #667eea; color: white; border-color: #667eea; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .point-tab { padding: 0.75rem 1rem; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.3s; white-space: nowrap; }
+        .point-tab:hover { border-color: #667eea; color: #667eea; }
+        .point-tab.active { background: #667eea; color: white; border-color: #667eea; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .form-group { margin-bottom: 1.5rem; }
@@ -51,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v5.1</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -107,6 +110,7 @@
         <!-- Puanlama -->
         <div id="puan" class="tab-content">
             <h2>Puanlama</h2>
+            <div id="pointsTabs" class="tabs" style="margin-bottom: 1.5rem;"></div>
             <div id="pointsList"></div>
             <button class="btn btn-primary" onclick="window.savePointsAndFinish()" style="margin-top: 1rem;"><i class="fas fa-check"></i> Kaydet ve Bitir</button>
         </div>
@@ -326,8 +330,22 @@
             
             try {
                 console.log('Kaydetme:', { date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci });
+                
+                // shift tablosuna kaydet (live vardiya)
                 await supabase.from('shift').upsert([{ id: 1, date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci }]);
-                alert('✅ Vardiya kaydedildi! ' + currentShiftMembers.length + ' kişi seçildi');
+                
+                // shifts_history'ye de kaydet (puan girişi için)
+                const memberMap = {};
+                currentShiftMembers.forEach(id => memberMap[id] = 0);
+                
+                await supabase.from('shifts_history').insert([{
+                    date: currentShiftDate,
+                    members_with_points: memberMap,
+                    nobetci: currentShiftNobetci
+                }], { onConflict: 'date' });
+                
+                alert('✅ Vardiya kaydedildi!\n' + currentShiftMembers.length + ' kişi seçildi.\n\nPuanlama sekmesine gidin ve puanları girin.');
+                window.renderPointsList();
                 window.switchTab('puan');
             } catch (e) {
                 alert('Hata: ' + e.message);
@@ -335,96 +353,203 @@
             }
         };
 
-        // Puanlama
+        // Puanlama - v6: Dinamik sekmeler
+        let selectedPointTab = null;
+        
         window.renderPointsList = async function() {
-            console.log('renderPointsList çağrıldı. currentShiftMembers:', currentShiftMembers);
+            console.log('renderPointsList v6 çağrıldı');
             
-            // Eğer currentShiftMembers boşsa, Supabase'ten çek
-            if (!currentShiftMembers || currentShiftMembers.length === 0) {
-                try {
-                    const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
-                    if (shift && shift.members) {
-                        currentShiftDate = shift.date;
-                        currentShiftMembers = shift.members;
-                        currentShiftNobetci = shift.nobetci;
-                        console.log('Supabase\'ten yüklendi:', shift);
-                    }
-                } catch (e) {
-                    console.error('Shift yükleme hatası:', e);
+            try {
+                // Tüm kaydedilmiş vardiyadları çek (date'e göre unique)
+                const { data: history } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
+                
+                if (!history || history.length === 0) {
+                    document.getElementById('pointsTabs').innerHTML = '';
+                    document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>⚠️ Henüz kaydedilmiş vardiya yok</p></div>';
+                    return;
                 }
+                
+                // Sekmeler oluştur
+                const tabsHtml = history.map(h => `
+                    <button class="point-tab ${selectedPointTab === h.date ? 'active' : ''}" 
+                            onclick="window.selectPointTab('${h.date}')" 
+                            style="font-size: 13px;">
+                        📅 ${formatDate(h.date)}
+                    </button>
+                `).join('');
+                
+                document.getElementById('pointsTabs').innerHTML = tabsHtml;
+                
+                // İlk sekmeden başla
+                if (!selectedPointTab && history.length > 0) {
+                    selectedPointTab = history[0].date;
+                }
+                
+                // Seçili sekmesini göster
+                window.selectPointTab(selectedPointTab);
+                
+            } catch (e) {
+                console.error('renderPointsList hatası:', e);
+                document.getElementById('pointsList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }
+        };
+        
+        window.selectPointTab = async function(date) {
+            selectedPointTab = date;
+            console.log('selectPointTab:', date);
             
-            if (!currentShiftMembers || currentShiftMembers.length === 0) {
-                document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>⚠️ Önce Vardiya Yönetimi sekmesinden personel seçip <strong>KAYDET</strong> butonuna tıklayınız</p></div>';
-                return;
+            // Sekmeler: aktif olanı vurgula
+            document.querySelectorAll('.point-tab').forEach(tab => {
+                if (tab.textContent.includes(formatDate(date))) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            try {
+                // O tarihte seçilenleri çek
+                const { data: shift } = await supabase.from('shifts_history').select('*').eq('date', date).single();
+                
+                if (!shift) {
+                    document.getElementById('pointsList').innerHTML = '<div class="empty-state">Vardiya bulunamadı</div>';
+                    return;
+                }
+                
+                // Seçilen personeller
+                const memberIds = Object.keys(shift.members_with_points || {}).map(id => parseInt(id));
+                const selected = personData.filter(p => memberIds.includes(p.id));
+                
+                // Puan girişi HTML'i
+                const html = '<h3 style="margin-bottom: 1rem;">Personellere Puan Veriniz (Vardiya: ' + formatDate(date) + ')</h3>' + 
+                    selected.map(p => `
+                        <div class="form-group">
+                            <label>${p.rank}. ${p.name}</label>
+                            <input type="number" id="puan-${p.id}" min="0" max="20" value="${shift.members_with_points[p.id] || 0}" placeholder="Puan girin">
+                        </div>
+                    `).join('');
+                
+                document.getElementById('pointsList').innerHTML = html;
+                document.getElementById('pointsList').dataset.shiftDate = date;
+                document.getElementById('pointsList').dataset.memberIds = JSON.stringify(memberIds);
+                
+            } catch (e) {
+                console.error('selectPointTab hatası:', e);
+                document.getElementById('pointsList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }
-            
-            const selected = personData.filter(p => currentShiftMembers.includes(p.id));
-            const list = document.getElementById('pointsList');
-            list.innerHTML = '<h3 style="margin-bottom: 1rem;">Personellere Puan Veriniz</h3>' + selected.map(p => `
-                <div class="form-group">
-                    <label>${p.rank}. ${p.name}</label>
-                    <input type="number" id="puan-${p.id}" min="0" max="20" value="0" placeholder="Puan girin">
-                </div>
-            `).join('');
         };
 
         window.savePointsAndFinish = async function() {
-            const selected = personData.filter(p => currentShiftMembers.includes(p.id));
+            const shiftDate = document.getElementById('pointsList').dataset.shiftDate;
+            const memberIds = JSON.parse(document.getElementById('pointsList').dataset.memberIds || '[]');
+            
+            if (!shiftDate || memberIds.length === 0) {
+                alert('⚠️ Lütfen önce bir vardiya sekmesi seçiniz');
+                return;
+            }
+            
+            // Puan verilerini topla
             const pointsData = {};
             let totalPoints = 0;
-            let count = 0;
-
-            selected.forEach(p => {
-                const points = parseInt(document.getElementById(`puan-${p.id}`).value) || 0;
-                pointsData[p.id] = points;
-                totalPoints += points;
-                count++;
+            
+            memberIds.forEach(id => {
+                const puan = parseInt(document.getElementById(`puan-${id}`).value) || 0;
+                pointsData[id] = puan;
+                totalPoints += puan;
             });
+            
+            const avgPoints = Math.round(totalPoints / memberIds.length);
+            
+            // CONFIRMATION DİALOGU
+            const confirmMsg = `
+⚠️ KAYIT ONAYLAMASI
 
-            const avgPoints = Math.round(totalPoints / count);
-            const allPersons = personData.filter(p => !currentShiftMembers.includes(p.id));
+Vardiya Tarihi: ${formatDate(shiftDate)}
+Puan Verilen Personel: ${memberIds.length}
+Toplam Puan: ${totalPoints}
+Ortalama Puan (Gelmeyenlere Eklenecek): ${avgPoints}
 
+Emin misiniz?
+            `;
+            
+            if (!confirm(confirmMsg)) {
+                alert('❌ İşlem iptal edildi');
+                return;
+            }
+            
             try {
-                for (let p of selected) {
-                    const pts = pointsData[p.id];
-                    await supabase.from('personel').update({ points: (personData.find(x => x.id === p.id).points || 0) + pts }).eq('id', p.id);
-                }
-                for (let p of allPersons) {
-                    await supabase.from('personel').update({ points: (p.points || 0) + avgPoints }).eq('id', p.id);
+                // Seçilenlere puan ekle
+                for (let id of memberIds) {
+                    const person = personData.find(p => p.id === id);
+                    if (person) {
+                        const newPoints = (person.points || 0) + pointsData[id];
+                        await supabase.from('personel').update({ points: newPoints }).eq('id', id);
+                    }
                 }
                 
-                await supabase.from('shifts_history').insert([{
-                    date: currentShiftDate,
+                // Seçilmeyenlere ortalama puan ekle
+                const allPersons = personData.filter(p => !memberIds.includes(p.id));
+                for (let p of allPersons) {
+                    const newPoints = (p.points || 0) + avgPoints;
+                    await supabase.from('personel').update({ points: newPoints }).eq('id', p.id);
+                }
+                
+                // Geçmiş vardiyayı güncelle (puanlar kaydedildi olarak işaretle)
+                await supabase.from('shifts_history').update({ 
                     members_with_points: pointsData,
-                    nobetci: currentShiftNobetci
-                }]);
-
-                alert('✅ Puanlama kaydedildi!');
+                    completed: true 
+                }).eq('date', shiftDate);
+                
+                alert('✅ Puanlama kaydedildi!\n\nSeçilmeyenlere ' + avgPoints + ' puan eklendi');
                 window.loadAllData();
-                window.renderFinalList();
-                window.switchTab('nihai');
+                window.renderHistoryList();
             } catch (e) {
-                alert('Hata: ' + e.message);
+                alert('❌ Hata: ' + e.message);
+                console.error('savePointsAndFinish Error:', e);
             }
         };
 
-        // Geçmiş Vardiyalar
+        // Geçmiş Vardiyalar - v6: Salt okunur özet
         window.renderHistoryList = async function() {
             try {
                 const { data } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
                 const list = document.getElementById('historyList');
+                
                 if (!data || data.length === 0) {
                     list.innerHTML = '<div class="empty-state">Geçmiş vardiya yok</div>';
                     return;
                 }
                 
-                list.innerHTML = data.map(h => `
-                    <div class="person-card">
-                        <h4>📅 ${formatDate(h.date)}</h4>
-                        <p style="font-size: 12px; color: #666;">Katılanlar: ${Object.keys(h.members_with_points || {}).length}</p>
-                    </div>
-                `).join('');
+                let html = '';
+                for (let h of data) {
+                    const memberIds = Object.keys(h.members_with_points || {}).map(id => parseInt(id));
+                    const selected = personData.filter(p => memberIds.includes(p.id));
+                    
+                    html += `<div class="person-card" style="border-left: 5px solid #667eea; margin-bottom: 1rem;">
+                        <h3>📅 ${formatDate(h.date)}</h3>
+                        <p style="color: #666; font-size: 12px; margin: 0.5rem 0;">Katılanlar: ${selected.length}</p>
+                        <div style="font-size: 12px; background: #f5f5f5; padding: 0.75rem; border-radius: 6px; margin-top: 0.75rem;">
+                            ${selected.map(p => `
+                                <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                    <span>${p.rank}. ${p.name}</span>
+                                    <strong style="color: #667eea;">+${h.members_with_points[p.id] || 0} puan</strong>
+                                </div>
+                            `).join('')}
+                        </div>`;
+                    
+                    if (h.nobetci) {
+                        const nob = personData.find(p => p.id === h.nobetci);
+                        if (nob) {
+                            html += `<div style="margin-top: 0.75rem; padding: 0.5rem; background: #fff3cd; border-radius: 6px; font-size: 12px;">
+                                🔔 <strong>Nöbetçi:</strong> ${nob.rank}. ${nob.name}
+                            </div>`;
+                        }
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                list.innerHTML = html;
             } catch (e) {
                 document.getElementById('historyList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }

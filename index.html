@@ -191,6 +191,8 @@
             document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
             
             if (tabName === 'yonetim') window.updateChecklists();
+            if (tabName === 'puan') window.renderPointsList();
+            if (tabName === 'gecmis') window.renderHistoryList();
             if (tabName === 'nihai') window.renderFinalList();
         };
 
@@ -332,6 +334,11 @@
 
         // Puanlama
         window.renderPointsList = function() {
+            if (!currentShiftMembers || currentShiftMembers.length === 0) {
+                document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>⚠️ Önce Vardiya Yönetimi sekmesinden personel seçip kaydediniz</p></div>';
+                return;
+            }
+            
             const selected = personData.filter(p => currentShiftMembers.includes(p.id));
             const list = document.getElementById('pointsList');
             list.innerHTML = selected.map(p => `
@@ -382,7 +389,26 @@
             }
         };
 
-        // Nihai Liste
+        // Geçmiş Vardiyalar
+        window.renderHistoryList = async function() {
+            try {
+                const { data } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
+                const list = document.getElementById('historyList');
+                if (!data || data.length === 0) {
+                    list.innerHTML = '<div class="empty-state">Geçmiş vardiya yok</div>';
+                    return;
+                }
+                
+                list.innerHTML = data.map(h => `
+                    <div class="person-card">
+                        <h4>📅 ${formatDate(h.date)}</h4>
+                        <p style="font-size: 12px; color: #666;">Katılanlar: ${Object.keys(h.members_with_points || {}).length}</p>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('historyList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
+            }
+        };
         window.renderFinalList = async function() {
             try {
                 const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();

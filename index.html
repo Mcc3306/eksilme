@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v6.3</title>
+    <title>Vardiya Eksilme Listesi v6.4</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.3</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.4</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -120,7 +120,10 @@
             </div>
             <div id="pointsTabs" class="tabs" style="margin-bottom: 1.5rem;"></div>
             <div id="pointsList"></div>
-            <button class="btn btn-primary" onclick="window.savePointsAndFinish()" style="margin-top: 1rem;"><i class="fas fa-check"></i> Kaydet ve Bitir</button>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="window.savePointsAndFinish()" style="flex: 1; min-width: 150px;"><i class="fas fa-check"></i> Kaydet ve Bitir</button>
+                <button class="btn btn-primary" onclick="window.skipScoringFinish()" style="flex: 1; min-width: 150px; background: #f59e0b;"><i class="fas fa-forward"></i> Boş Bırak ve Bitir</button>
+            </div>
         </div>
 
         <!-- Geçmiş -->
@@ -432,18 +435,20 @@
         };
         
         window.renderPointsList = async function() {
-            console.log('renderPointsList v6.3 çağrıldı');
+            console.log('renderPointsList v6.4 çağrıldı');
             
             try {
                 // Tamamlanmamış vardiyadarı çek (completed != true)
                 const { data: history } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
+                console.log('Tüm vardiyadar:', history);
                 
-                // v6.3: Tamamlanmış vardiyadarı filtrele
+                // v6.4: Tamamlanmamış vardiyadarı filtrele (completed == false or null)
                 const pendingShifts = history ? history.filter(h => !h.completed) : [];
+                console.log('Tamamlanmamış vardiyadar:', pendingShifts);
                 
                 if (!pendingShifts || pendingShifts.length === 0) {
                     document.getElementById('pointsTabs').innerHTML = '';
-                    document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>✅ Tüm vardiyalar puanlandı!</p><p style="font-size: 12px; color: #999;">Geçmiş Vardiyalar sekmesinden tamamlanan vardiyaları görebilirsiniz.</p></div>';
+                    document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>✅ Tüm vardiyalar tamamlandı!</p><p style="font-size: 12px; color: #999;">Geçmiş Vardiyalar sekmesinden tamamlanan vardiyaları görebilirsiniz.</p></div>';
                     return;
                 }
                 
@@ -585,14 +590,61 @@ Emin misiniz?
                     completed: true 
                 }).eq('date', shiftDate);
                 
+                console.log('Vardiya kaydedildi ve completed=true yapıldı:', shiftDate);
+                
                 alert('✅ Puanlama kaydedildi!\n\nSeçilmeyenlere ' + avgPoints + ' puan eklendi');
+                selectedPointTab = null;
                 window.loadAllData();
                 window.renderPointsList();
                 window.renderHistoryList();
-                selectedPointTab = null;
             } catch (e) {
                 alert('❌ Hata: ' + e.message);
                 console.error('savePointsAndFinish Error:', e);
+            }
+        };
+        
+        window.skipScoringFinish = async function() {
+            const shiftDate = document.getElementById('pointsList').dataset.shiftDate;
+            const memberIds = JSON.parse(document.getElementById('pointsList').dataset.memberIds || '[]');
+            
+            if (!shiftDate || memberIds.length === 0) {
+                alert('⚠️ Lütfen önce bir vardiya sekmesi seçiniz');
+                return;
+            }
+            
+            if (!confirm('⚠️ KİMSEYE PUAN VERMEDİN!\n\nTarih: ' + formatDate(shiftDate) + '\n\nTüm puanları 0 olarak kaydedecek.\nEmin misiniz?')) {
+                return;
+            }
+            
+            try {
+                // Tüm seçilenlere 0 puan
+                const pointsData = {};
+                memberIds.forEach(id => {
+                    pointsData[id] = 0;
+                });
+                
+                // Seçilmeyenlere 0 ekle (ortalama = 0)
+                const allPersons = personData.filter(p => !memberIds.includes(p.id));
+                for (let p of allPersons) {
+                    await supabase.from('personel').update({ points: p.points || 0 }).eq('id', p.id);
+                }
+                
+                // Geçmiş vardiyayı güncelle
+                await supabase.from('shifts_history').update({ 
+                    members_with_points: pointsData,
+                    completed: true 
+                }).eq('date', shiftDate);
+                
+                console.log('Boş vardiya tamamlandı:', shiftDate);
+                
+                alert('✅ Vardiya boş bırakıldı (0 puan)');
+                selectedPointTab = null;
+                window.loadAllData();
+                window.renderPointsList();
+                window.renderHistoryList();
+            } catch (e) {
+                alert('❌ Hata: ' + e.message);
+                console.error('skipScoringFinish Error:', e);
             }
         };
 

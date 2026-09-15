@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v6.5</title>
+    <title>Vardiya Eksilme Listesi v7.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,9 +39,10 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
         .modal.active { display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; }
-        .final-grid { display: flex; flex-direction: column; gap: 0; margin: 1rem 0; }
-        @media (max-width: 768px) { .final-grid { flex-direction: column; } }
-        @media (max-width: 600px) { .final-grid { flex-direction: column; } }
+        .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0; }
+        .final-column { display: flex; flex-direction: column; gap: 0; }
+        @media (max-width: 768px) { .final-grid { grid-template-columns: 1fr; gap: 1rem; } }
+        @media (max-width: 600px) { .final-grid { grid-template-columns: 1fr; gap: 1rem; } }
         .final-item { display: grid; grid-template-columns: 60px 1fr; height: 48px; overflow: hidden; border: 1px solid #ddd; }
         .final-number { font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #fff; background-color: inherit; border-right: 1px solid rgba(255,255,255,0.2); }
         .final-name { font-size: 9px; word-break: break-word; padding: 0.5rem; display: flex; align-items: center; color: #fff; font-weight: 600; }
@@ -54,7 +55,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.5</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v7.0</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -735,17 +736,36 @@ Emin misiniz?
 
                 const selected = personData.filter(p => shift.members.includes(p.id));
                 
-                // v6.2: Puan sırasına göre sort + aynı puanlıları shuffle et
+                // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
                 const sorted = shuffleByPoints(selected);
 
+                // Nöbetçi olmayan personel
+                const notNobetci = sorted.filter(p => p.id !== shift.nobetci);
+                
+                // Yarısında böl
+                const mid = Math.ceil(notNobetci.length / 2);
+                const leftColumn = notNobetci.slice(0, mid);
+                const rightColumn = notNobetci.slice(mid);
+
                 let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div><div class="final-grid">`;
+                
+                // SOL SÜTUN
+                html += `<div class="final-column">`;
                 let num = 1;
-                sorted.forEach(p => {
-                    if (p.id !== shift.nobetci) {
-                        html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
-                        num++;
-                    }
+                leftColumn.forEach(p => {
+                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                    num++;
                 });
+                html += `</div>`;
+                
+                // SAĞ SÜTUN
+                html += `<div class="final-column">`;
+                rightColumn.forEach(p => {
+                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                    num++;
+                });
+                html += `</div>`;
+                
                 html += '</div>';
 
                 if (shift.nobetci) {

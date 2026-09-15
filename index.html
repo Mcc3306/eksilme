@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v6.9</title>
+    <title>Vardiya Eksilme Listesi v7.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,7 +42,7 @@
         .final-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; margin: 1rem 0; }
         @media (max-width: 768px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.2rem; } }
         @media (max-width: 600px) { .final-grid { grid-template-columns: repeat(3, 1fr); gap: 0.15rem; } }
-        .final-item { padding: 0.25rem; border-radius: 3px; color: #fff; font-weight: 600; font-size: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 48px; overflow: hidden; opacity: 0.4; }
+        .final-item { padding: 0.25rem; border-radius: 3px; color: #fff; font-weight: 600; font-size: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 48px; overflow: hidden; opacity: 0.65; }
         .final-number { font-size: 13px; font-weight: 900; margin-bottom: 0.15rem; }
         .final-name { font-size: 9px; word-break: break-word; line-height: 1; text-align: center; }
         .empty-state { text-align: center; padding: 2rem; color: #999; }
@@ -54,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.9</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v7.0</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -725,6 +725,10 @@ Emin misiniz?
                 document.getElementById('historyList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }
         };
+        // Mavi ve yeşil soft tonları
+        const blueTones = ['#8FA3C0', '#A0B5D4', '#7F95BE'];
+        const greenTones = ['#9CBB91', '#A8C89A', '#8CAE87'];
+        
         window.renderFinalList = async function() {
             try {
                 const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
@@ -735,14 +739,19 @@ Emin misiniz?
 
                 const selected = personData.filter(p => shift.members.includes(p.id));
                 
-                // v6.2: Puan sırasına göre sort + aynı puanlıları shuffle et
+                // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
                 const sorted = shuffleByPoints(selected);
 
                 let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div><div class="final-grid">`;
                 let num = 1;
-                sorted.forEach(p => {
+                sorted.forEach((p, idx) => {
                     if (p.id !== shift.nobetci) {
-                        html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                        // Alternating mavi-yeşil: çift indexler mavi, tek indexler yeşil
+                        const isBlue = idx % 2 === 0;
+                        const colorTones = isBlue ? blueTones : greenTones;
+                        const color = colorTones[idx % colorTones.length];
+                        
+                        html += `<div class="final-item" style="background: ${color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
                         num++;
                     }
                 });

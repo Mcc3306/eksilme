@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v7.1</title>
+    <title>Vardiya Eksilme Listesi v6.5</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,7 +54,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v7.1</span></h1>
+            <h1><i class="fas fa-list-check"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v6.5</span></h1>
             <p>Personel yönetimi, vardiya planlama ve geçmiş kayıtları</p>
         </div>
 
@@ -725,9 +725,6 @@ Emin misiniz?
                 document.getElementById('historyList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }
         };
-        // v7.1: Sadece iki renk - Yeşil + Mavi alternating
-        const finalColors = ['#2D4236', '#1B263B']; // Yeşil, Mavi
-        
         window.renderFinalList = async function() {
             try {
                 const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
@@ -738,17 +735,14 @@ Emin misiniz?
 
                 const selected = personData.filter(p => shift.members.includes(p.id));
                 
-                // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
+                // v6.2: Puan sırasına göre sort + aynı puanlıları shuffle et
                 const sorted = shuffleByPoints(selected);
 
                 let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div><div class="final-grid">`;
                 let num = 1;
-                sorted.forEach((p, idx) => {
+                sorted.forEach(p => {
                     if (p.id !== shift.nobetci) {
-                        // Alternating: 0,2,4... yeşil, 1,3,5... mavi
-                        const color = finalColors[idx % 2];
-                        
-                        html += `<div class="final-item" style="background: ${color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                        html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
                         num++;
                     }
                 });

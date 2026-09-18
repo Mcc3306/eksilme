@@ -71,19 +71,23 @@
         .close-modal:hover { color: #667eea; }
     </style>
 </head>
+<body>
     <div class="pin-modal active" id="pinModal">
-            <div class="pin-modal-content">
-                <h2>🔐 PIN Koruması</h2>
-                <p>Uygulamaya erişmek için PIN'i girin</p>
-                <input type="password" id="pinInput" class="pin-input" maxlength="6" placeholder="••••" />
-                <button class="pin-btn" id="pinSubmitBtn" onclick="checkPin()">GİRİŞ</button>
-                <div class="pin-error" id="pinError">❌ Yanlış PIN!</div>
-                <div class="pin-info" id="pinInfo"></div>
-            </div>
+        <div class="pin-modal-content">
+            <h2>🔐 PIN Koruması</h2>
+            <p>Uygulamaya erişmek için PIN'i girin</p>
+            <input type="password" id="pinInput" class="pin-input" maxlength="6" placeholder="••••" />
+            <button class="pin-btn" id="pinSubmitBtn" onclick="checkPin()">GİRİŞ</button>
+            <div class="pin-error" id="pinError">❌ Yanlış PIN!</div>
+            <div class="pin-info" id="pinInfo"></div>
         </div>
-            <p>⚜️ Profesyonel Vardiya Yönetim Sistemi ⚜️</p>
-            <button onclick="logout()" style="position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s;">🔐 ÇIKIŞ</button>
-        </div>
+    </div>
+    
+    <div class="header">
+        <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v8.4.2</span></h1>
+        <p>⚜️ Profesyonel Vardiya Yönetim Sistemi ⚜️</p>
+        <button onclick="logout()" style="position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s;">🔐 ÇIKIŞ</button>
+    </div>
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('liste')"><i class="fas fa-users"></i> İsim Listesi</button>

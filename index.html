@@ -38,7 +38,7 @@
         .checkbox-item:hover { background: #f9f9f9; }
         .checkbox-item input { margin-right: 0.75rem; cursor: pointer; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
-        .pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; align-items: center; justify-content: center; }
+        .pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 1); z-index: 99999; align-items: center; justify-content: center; }
         .pin-modal.active { display: flex; }
         .pin-modal-content { background: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); max-width: 350px; }
         .pin-modal-content h2 { color: #556B2F; margin-bottom: 1rem; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
@@ -834,6 +834,7 @@ Emin misiniz?
             if (enteredPin === DEFAULT_PIN) {
                 localStorage.setItem('pinSessionTime', new Date().getTime());
                 pinModal.classList.remove('active');
+                document.body.style.overflow = 'auto';
                 pinInput.value = '';
                 pinError.style.display = 'none';
             } else {
@@ -845,6 +846,7 @@ Emin misiniz?
             localStorage.removeItem('pinSessionTime');
             document.getElementById('pinModal').classList.add('active');
             document.getElementById('pinInput').value = '';
+            document.body.style.overflow = 'hidden';
         }
         function isPinSessionValid() {
             const sessionTime = localStorage.getItem('pinSessionTime');
@@ -856,6 +858,7 @@ Emin misiniz?
         document.addEventListener('DOMContentLoaded', () => {
             if (!isPinSessionValid()) {
                 document.getElementById('pinModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
             }
         });
         document.getElementById('pinInput').addEventListener('keypress', (e) => {

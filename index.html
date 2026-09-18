@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v8.0 - Askeriye Tema</title>
+    <title>3'üncü Vardiya Eksilme Listesi v8.2 - PIN Koruması</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,6 +38,16 @@
         .checkbox-item:hover { background: #f9f9f9; }
         .checkbox-item input { margin-right: 0.75rem; cursor: pointer; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+        .pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; align-items: center; justify-content: center; }
+        .pin-modal.active { display: flex; }
+        .pin-modal-content { background: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); max-width: 350px; }
+        .pin-modal-content h2 { color: #556B2F; margin-bottom: 1rem; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+        .pin-modal-content p { color: #666; margin-bottom: 2rem; font-size: 14px; }
+        .pin-input { font-size: 32px; text-align: center; letter-spacing: 10px; padding: 1rem; border: 2px solid #556B2F; border-radius: 8px; width: 100%; font-weight: bold; margin-bottom: 1.5rem; font-family: monospace; }
+        .pin-input:focus { outline: none; border-color: #3d4d1e; box-shadow: 0 0 10px rgba(85, 107, 47, 0.3); }
+        .pin-btn { background: #556B2F; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; width: 100%; }
+        .pin-btn:hover { background: #3d4d1e; }
+        .pin-error { color: #dc2626; font-size: 12px; margin-top: 0.5rem; display: none; }
         .modal.active { display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; }
         .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0; }
@@ -51,11 +61,20 @@
         .close-modal:hover { color: #667eea; }
     </style>
 </head>
-<body>
+    <div class="pin-modal active" id="pinModal">
+            <div class="pin-modal-content">
+                <h2>🔐 PIN Koruması</h2>
+                <p>Uygulamaya erişmek için PIN'i girin</p>
+                <input type="password" id="pinInput" class="pin-input" maxlength="6" placeholder="••••" />
+                <button class="pin-btn" onclick="checkPin()">GİRİŞ</button>
+                <div class="pin-error" id="pinError">❌ Yanlış PIN! Tekrar deneyin.</div>
+            </div>
+        </div>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-shield-alt"></i> Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v8.0 - ASKERİYE TEMA</span></h1>
+            <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v8.2</span></h1>
             <p>⚜️ Profesyonel Vardiya Yönetim Sistemi ⚜️</p>
+            <button onclick="logout()" style="position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s;">🔐 ÇIKIŞ</button>
         </div>
 
         <div class="tabs">
@@ -805,6 +824,44 @@ Emin misiniz?
         };
 
         // İnitialization
+        // PIN Koruması
+        const DEFAULT_PIN = "1234";
+        function checkPin() {
+            const pinInput = document.getElementById('pinInput');
+            const pinError = document.getElementById('pinError');
+            const pinModal = document.getElementById('pinModal');
+            const enteredPin = pinInput.value;
+            if (enteredPin === DEFAULT_PIN) {
+                localStorage.setItem('pinSessionTime', new Date().getTime());
+                pinModal.classList.remove('active');
+                pinInput.value = '';
+                pinError.style.display = 'none';
+            } else {
+                pinError.style.display = 'block';
+                pinInput.value = '';
+            }
+        }
+        function logout() {
+            localStorage.removeItem('pinSessionTime');
+            document.getElementById('pinModal').classList.add('active');
+            document.getElementById('pinInput').value = '';
+        }
+        function isPinSessionValid() {
+            const sessionTime = localStorage.getItem('pinSessionTime');
+            if (!sessionTime) return false;
+            const now = new Date().getTime();
+            const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+            return (now - parseInt(sessionTime)) < thirtyDaysMs;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!isPinSessionValid()) {
+                document.getElementById('pinModal').classList.add('active');
+            }
+        });
+        document.getElementById('pinInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPin();
+        });
+
         window.addEventListener('load', () => {
             window.loadAllData();
             document.getElementById('editModal').addEventListener('click', (e) => {

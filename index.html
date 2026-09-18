@@ -81,27 +81,8 @@
                 <div class="pin-info" id="pinInfo"></div>
             </div>
         </div>
-        <div class="change-pin-modal" id="changePinModal">
-            <div class="change-pin-modal-content">
-                <h2>🔑 PIN'i Değiştir</h2>
-                <label>Eski PIN:</label>
-                <input type="password" id="oldPinInput" class="pin-input" maxlength="6" placeholder="••••" />
-                <label>Yeni PIN:</label>
-                <input type="password" id="newPinInput" class="pin-input" maxlength="6" placeholder="••••" />
-                <label>Yeni PIN (Tekrar):</label>
-                <input type="password" id="confirmPinInput" class="pin-input" maxlength="6" placeholder="••••" />
-                <div class="pin-error" id="changePinError" style="display: none;"></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 2rem;">
-                    <button class="pin-btn pin-btn-half" onclick="saveNewPin()">✅ KAYDET</button>
-                    <button class="pin-btn pin-btn-half" style="background: #999;" onclick="closePinChange()">❌ İPTAL</button>
-                </div>
-            </div>
-        </div>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v8.2</span></h1>
             <p>⚜️ Profesyonel Vardiya Yönetim Sistemi ⚜️</p>
-            <button onclick="showLogoutOptions()" style="position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s;">🔐 ÇIKIŞ</button>
+            <button onclick="logout()" style="position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s;">🔐 ÇIKIŞ</button>
         </div>
 
         <div class="tabs">
@@ -853,7 +834,7 @@ Emin misiniz?
         // İnitialization
         // PIN Koruması & Brute Force Koruması
         // PIN Koruması & Brute Force Koruması - LOAD EVENT DIŞINDA
-        const DEFAULT_PIN = "1234";
+        const DEFAULT_PIN = "1881";
         
         function getFailedAttempts() {
             const data = JSON.parse(localStorage.getItem('pinFailedAttempts') || '{"count": 0, "lockUntil": 0}');
@@ -884,6 +865,7 @@ Emin misiniz?
             const pinError = document.getElementById('pinError');
             const pinInfo = document.getElementById('pinInfo');
             if (isLocked()) {
+            if (!pinInput || !pinSubmitBtn || !pinError || !pinInfo) return;
                 const remaining = getLockedTimeRemaining();
                 pinInput.disabled = true;
                 pinSubmitBtn.disabled = true;
@@ -936,48 +918,12 @@ Emin misiniz?
             }
         }
         
-        function showLogoutOptions() {
-            document.getElementById('changePinModal').classList.add('active');
-        }
-        
-        function closePinChange() {
-            document.getElementById('changePinModal').classList.remove('active');
-            document.getElementById('oldPinInput').value = '';
-            document.getElementById('newPinInput').value = '';
-            document.getElementById('confirmPinInput').value = '';
-            document.getElementById('changePinError').style.display = 'none';
-        }
-        
-        function saveNewPin() {
-            const oldPin = document.getElementById('oldPinInput').value;
-            const newPin = document.getElementById('newPinInput').value;
-            const confirmPin = document.getElementById('confirmPinInput').value;
-            const error = document.getElementById('changePinError');
-            if (oldPin !== DEFAULT_PIN) {
-                error.style.display = 'block';
-                error.innerHTML = '❌ Eski PIN yanlış!';
-                return;
-            }
-            if (newPin.length < 4 || newPin.length > 6) {
-                error.style.display = 'block';
-                error.innerHTML = '❌ Yeni PIN 4-6 haneli olmalı!';
-                return;
-            }
-            if (newPin !== confirmPin) {
-                error.style.display = 'block';
-                error.innerHTML = '❌ Yeni PIN\'ler eşleşmiyor!';
-                return;
-            }
-            alert('✅ PIN başarıyla değiştirildi!');
-            closePinChange();
-            logout();
-        }
         
         function logout() {
             localStorage.removeItem('pinSessionTime');
             document.getElementById('pinModal').classList.add('active');
-            document.getElementById('changePinModal').classList.remove('active');
-            document.getElementById('pinInput').value = '';
+            const pinInput = document.getElementById('pinInput');
+            if (pinInput) pinInput.value = '';
             document.body.style.overflow = 'hidden';
             updatePinDisplay();
         }
@@ -996,20 +942,34 @@ Emin misiniz?
                 document.body.style.overflow = 'hidden';
                 updatePinDisplay();
             }
+        
+        window.addEventListener('load', () => {
+            if (!isPinSessionValid()) {
+                document.getElementById('pinModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+                updatePinDisplay();
+            }
             window.loadAllData();
-            document.getElementById('editModal').addEventListener('click', (e) => {
-                if (e.target.id === 'editModal') window.closeEditModal();
-            });
+            const editModal = document.getElementById('editModal');
+            if (editModal) {
+                editModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'editModal') window.closeEditModal();
+                });
+            }
         });
         
-        document.getElementById('pinInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkPin();
-        });
+        const pinInputEl = document.getElementById('pinInput');
+        if (pinInputEl) {
+            pinInputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') checkPin();
+            });
+        }
         
         setInterval(() => {
             if (isLocked()) {
                 updatePinDisplay();
             }
+        }, 1000);
         }, 1000);
     </script>
 </body>

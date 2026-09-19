@@ -296,17 +296,34 @@
 
         window.loadAllData = async function() {
             try {
-                const { data } = await supabase.from('personel').select('*');
+                console.log('🔄 loadAllData başladı...');
+                console.log('Supabase:', supabase);
+                const { data, error } = await supabase.from('personel').select('*');
+                if (error) {
+                    console.error('❌ Supabase Error:', error);
+                    return;
+                }
+                console.log('✅ Veri geldi:', data);
                 personData = (data || []).sort((a, b) => a.color.localeCompare(b.color));
+                console.log('📊 personData:', personData);
                 window.renderPersonList();
                 window.updateChecklists();
             } catch (e) {
-                console.error('Veri yükleme hatası:', e);
+                console.error('❌ Veri yükleme hatası:', e);
             }
         };
 
         window.renderPersonList = function() {
             const list = document.getElementById('personList');
+            if (!list) {
+                console.error('❌ personList element bulunamadı!');
+                return;
+            }
+            console.log('📝 renderPersonList - personData:', personData);
+            if (!personData || personData.length === 0) {
+                list.innerHTML = '<div class="empty-state">📭 Henüz personel eklenmemiş.</div>';
+                return;
+            }
             list.innerHTML = personData.map(p => `
                 <div class="person-card" style="border-left-color: ${p.color};">
                     <h4>${p.rank}. ${p.name}</h4>

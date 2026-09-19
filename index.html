@@ -3,950 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3'üncü Vardiya Eksilme Listesi v8.2 - PIN Koruması</title>
+    <title>3'üncü Vardiya Eksilme Listesi v7.2</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-        .header { background: linear-gradient(135deg, #556B2F 0%, #6B8E23 100%); color: white; padding: 2rem; border-radius: 0; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); border-bottom: 4px solid #3d4d1e; position: relative; }
-        .header::before { content: "⚜️"; position: absolute; top: 1rem; right: 2rem; font-size: 40px; opacity: 0.3; }
-        .header h1 { font-size: 28px; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; }
-        .header p { opacity: 0.9; font-size: 14px; letter-spacing: 1px; }
-        .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; overflow-x: auto; flex-wrap: wrap; }
-        .tab-btn { padding: 0.75rem 1.5rem; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; white-space: nowrap; }
-        .tab-btn:hover { border-color: #556B2F; color: #556B2F; }
-        .tab-btn.active { background: #556B2F; color: white; border-color: #556B2F; box-shadow: 0 4px 12px rgba(85, 107, 47, 0.4); }
-        .point-tab { padding: 0.75rem 1rem; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.3s; white-space: nowrap; }
-        .point-tab:hover { border-color: #556B2F; color: #556B2F; }
-        .point-tab.active { background: #556B2F; color: white; border-color: #556B2F; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 14px; }
-        .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: #556B2F; }
-        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s; }
-        .btn-primary { background: #556B2F; color: white; }
-        .btn-primary:hover { background: #3d4d1e; box-shadow: 0 4px 12px rgba(85, 107, 47, 0.4); }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        .person-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .person-card { background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #556B2F; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
-        .person-card h4 { margin-bottom: 0.5rem; }
-        .checkbox-item { display: flex; align-items: center; padding: 0.75rem; background: white; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer; transition: background 0.2s; }
-        .checkbox-item:hover { background: #f9f9f9; }
-        .checkbox-item input { margin-right: 0.75rem; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
-        .pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 1); z-index: 99999; align-items: center; justify-content: center; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        
+        .pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,1); z-index: 9999; align-items: center; justify-content: center; }
         .pin-modal.active { display: flex; }
-        .pin-modal-content { background: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); max-width: 350px; }
+        .pin-modal-content { background: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 350px; }
         .pin-modal-content h2 { color: #556B2F; margin-bottom: 1rem; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
         .pin-modal-content p { color: #666; margin-bottom: 2rem; font-size: 14px; }
         .pin-input { font-size: 32px; text-align: center; letter-spacing: 10px; padding: 1rem; border: 2px solid #556B2F; border-radius: 8px; width: 100%; font-weight: bold; margin-bottom: 1.5rem; font-family: monospace; }
-        .pin-input:focus { outline: none; border-color: #3d4d1e; box-shadow: 0 0 10px rgba(85, 107, 47, 0.3); }
-        .pin-input:disabled { background: #f3f4f6; cursor: not-allowed; opacity: 0.6; }
-        .pin-btn { background: #556B2F; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; width: 100%; margin-bottom: 0.5rem; }
-        .pin-btn:hover:not(:disabled) { background: #3d4d1e; }
-        .pin-btn:disabled { background: #999; cursor: not-allowed; opacity: 0.6; }
+        .pin-input:focus { outline: none; border-color: #3d4d1e; box-shadow: 0 0 10px rgba(85,107,47,0.3); }
+        .pin-btn { background: #556B2F; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; width: 100%; }
+        .pin-btn:hover { background: #3d4d1e; }
         .pin-error { color: #dc2626; font-size: 12px; margin-top: 0.5rem; display: none; }
-        .pin-info { color: #666; font-size: 12px; margin-top: 0.5rem; }
-        .pin-buttons { display: flex; gap: 0.5rem; }
-        .pin-btn-half { flex: 1; }
-        .change-pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 1); z-index: 99998; align-items: center; justify-content: center; }
-        .change-pin-modal.active { display: flex; }
-        .change-pin-modal-content { background: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); max-width: 350px; }
-        .change-pin-modal-content h2 { color: #556B2F; margin-bottom: 1.5rem; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
-        .change-pin-modal-content label { display: block; text-align: left; color: #333; font-weight: 600; font-size: 12px; margin-bottom: 0.5rem; margin-top: 1rem; }
-        .modal.active { display: flex; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; }
-        .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0; }
-        .final-column { display: flex; flex-direction: column; gap: 0; }
-        .final-item { display: grid; grid-template-columns: 50px 1fr; height: 48px; overflow: hidden; border: 1px solid #ddd; }
-        .final-number { font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #fff; background-color: inherit; border-right: 1px solid rgba(255,255,255,0.2); }
-        .final-name { font-size: 8px; word-break: break-word; padding: 0.5rem; display: flex; align-items: center; color: #fff; font-weight: 600; }
-        .empty-state { text-align: center; padding: 2rem; color: #999; }
-        .nob-section { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center; box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3); }
-        .close-modal { float: right; font-size: 24px; cursor: pointer; font-weight: bold; }
-        .close-modal:hover { color: #667eea; }
+        
+        .header { background: linear-gradient(135deg, #556B2F 0%, #6B8E23 100%); color: white; padding: 2rem 1.5rem; text-align: center; position: relative; border-radius: 0; border-bottom: 4px solid #3d4d1e; }
+        .header h1 { font-size: 24px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .header button { position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        
+        .tabs { display: flex; gap: 0.5rem; padding: 1rem; background: white; flex-wrap: wrap; }
+        .tab-btn { padding: 0.75rem 1.5rem; border: none; background: #f3f4f6; cursor: pointer; border-radius: 6px; font-weight: 600; transition: all 0.3s; }
+        .tab-btn.active { background: #556B2F; color: white; }
+        .tab-btn:hover { background: #6B8E23; color: white; }
+        
+        .tab-content { display: none; padding: 1.5rem; }
+        .tab-content.active { display: block; }
+        
+        .person-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        .person-card { background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #556B2F; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .person-card h4 { margin-bottom: 0.5rem; color: #333; }
+        .person-card p { color: #999; font-size: 12px; }
+        
+        .btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #556B2F; color: white; }
+        .btn-danger { background: #dc2626; color: white; }
     </style>
 </head>
 <body>
     <div class="pin-modal active" id="pinModal">
         <div class="pin-modal-content">
-            <h2>🔐 PIN Koruması</h2>
+            <h2>🔐 PIN KORUMASI</h2>
             <p>Uygulamaya erişmek için PIN'i girin</p>
             <input type="password" id="pinInput" class="pin-input" maxlength="6" placeholder="••••" />
-            <button class="pin-btn" id="pinSubmitBtn" onclick="checkPin()">GİRİŞ</button>
+            <button class="pin-btn" onclick="checkPin()">GİRİŞ</button>
             <div class="pin-error" id="pinError">❌ Yanlış PIN!</div>
-            <div class="pin-info" id="pinInfo"></div>
         </div>
     </div>
     
     <div class="header">
-        <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi <span style="font-size: 14px; opacity: 0.8;">v8.4.2</span></h1>
+        <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi</h1>
         <p>⚜️ Profesyonel Vardiya Yönetim Sistemi ⚜️</p>
-        <button onclick="logout()" style="position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.3s;">🔐 ÇIKIŞ</button>
+        <button onclick="logout()">🔐 ÇIKIŞ</button>
     </div>
-
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('liste')"><i class="fas fa-users"></i> İsim Listesi</button>
-            <button class="tab-btn" onclick="switchTab('yonetim')"><i class="fas fa-calendar"></i> Vardiya Yönetimi</button>
-            <button class="tab-btn" onclick="switchTab('puan')"><i class="fas fa-star"></i> Puanlama</button>
-            <button class="tab-btn" onclick="switchTab('gecmis')"><i class="fas fa-history"></i> Geçmiş</button>
-            <button class="tab-btn" onclick="switchTab('nihai')"><i class="fas fa-check-circle"></i> Nihai Liste</button>
-        </div>
-
-        <!-- İsim Listesi -->
-        <div id="liste" class="tab-content active">
-            <h2>Personel Yönetimi</h2>
-            <div class="form-group">
-                <label>Rütbe</label>
-                <select id="inputRank">
-                    <option value="Yzb">Yzb (Yüzbaşı)</option>
-                    <option value="Bnb">Bnb (Binbaşı)</option>
-                    <option value="Ütğm">Ütğm (Üsteğmen)</option>
-                    <option value="Tğm">Tğm (Teğmen)</option>
-                    <option value="Alb">Alb (Albay)</option>
-                    <option value="Yb">Yb (Yarbay)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Ad-Soyad</label>
-                <input type="text" id="inputName" placeholder="Ad-Soyad girin">
-            </div>
-            <div class="form-group">
-                <label>Başlangıç Puanı</label>
-                <input type="number" id="inputInitialPoints" min="0" value="0" placeholder="Başlangıç puanı (varsayılan: 0)">
-            </div>
-            <div class="form-group">
-                <label>Renk</label>
-                <input type="color" id="inputColor" value="#3B82F6">
-            </div>
-            <button class="btn btn-primary" onclick="window.addPerson()"><i class="fas fa-plus"></i> Personel Ekle</button>
-            <div id="personList" class="person-list"></div>
-        </div>
-
-        <!-- Vardiya Yönetimi -->
-        <div id="yonetim" class="tab-content">
-            <h2>Vardiya Yönetimi</h2>
-            <div class="form-group">
-                <label>Tarih Seçin</label>
-                <input type="date" id="shiftDate">
-            </div>
-            <button class="btn btn-primary" onclick="window.createNewShift()"><i class="fas fa-check"></i> Vardiyayı Başlat</button>
-            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Katılacak Personeli Seçin</h3>
-            <div id="checklist"></div>
-            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Nöbetçi Seçin</h3>
-            <div id="nobList"></div>
-            <button class="btn btn-primary" onclick="window.saveShiftMembers()" style="margin-top: 1rem;"><i class="fas fa-save"></i> Kaydet</button>
-        </div>
-
-        <!-- Puanlama -->
-        <div id="puan" class="tab-content">
-            <h2>Puanlama</h2>
-            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-                <button class="btn btn-danger" onclick="window.cancelScoring()" style="flex: 1; min-width: 120px;"><i class="fas fa-times"></i> İptal</button>
-                <button class="btn btn-primary" onclick="window.renderPointsList()" style="flex: 1; min-width: 120px;"><i class="fas fa-sync"></i> Yenile</button>
-            </div>
-            <div id="pointsTabs" class="tabs" style="margin-bottom: 1.5rem;"></div>
-            <div id="pointsList"></div>
-            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-                <button class="btn btn-primary" onclick="window.savePointsAndFinish()" style="flex: 1; min-width: 150px;"><i class="fas fa-check"></i> Kaydet ve Bitir</button>
-                <button class="btn btn-primary" onclick="window.skipScoringFinish()" style="flex: 1; min-width: 150px; background: #f59e0b;"><i class="fas fa-forward"></i> Boş Bırak ve Bitir</button>
-            </div>
-        </div>
-
-        <!-- Geçmiş -->
-        <div id="gecmis" class="tab-content">
-            <h2>Geçmiş Vardiyalar</h2>
-            <div id="historyList"></div>
-        </div>
-
-        <!-- Nihai Liste -->
-        <div id="nihai" class="tab-content">
-            <h2>Vardiya Sonuç Listesi</h2>
-            <div id="finalList"></div>
-            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                <button class="btn btn-primary" onclick="window.downloadAsImage()"><i class="fas fa-image"></i> Resim Olarak İndir</button>
-                <button class="btn btn-primary" onclick="window.shareToWhatsApp()"><i class="fas fa-share"></i> Paylaş</button>
-            </div>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('liste')"><i class="fas fa-users"></i> İsim Listesi</button>
+        <button class="tab-btn" onclick="switchTab('yonetim')"><i class="fas fa-calendar"></i> Vardiya Yönetimi</button>
+        <button class="tab-btn" onclick="switchTab('puan')"><i class="fas fa-star"></i> Puanlama</button>
+        <button class="tab-btn" onclick="switchTab('durum')"><i class="fas fa-chart-bar"></i> Puan Durumu</button>
+        <button class="tab-btn" onclick="switchTab('gecmis')"><i class="fas fa-history"></i> Geçmiş</button>
+        <button class="tab-btn" onclick="switchTab('nihai')"><i class="fas fa-check-circle"></i> Nihai Liste</button>
+    </div>
+    
+    <div id="liste" class="tab-content active">
+        <h2>Personel Yönetimi</h2>
+        <div id="personList" class="person-list"></div>
+    </div>
+    
+    <div id="yonetim" class="tab-content">
+        <h2>Vardiya Yönetimi</h2>
+        <p>Vardiya yönetim içeriği</p>
+    </div>
+    
+    <div id="puan" class="tab-content">
+        <h2>Puanlama</h2>
+        <p>Puanlama içeriği</p>
+    </div>
+    
+    <div id="durum" class="tab-content">
+        <h2>Puan Durumu Çizelgesi</h2>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #556B2F; color: white;">
+                        <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Numara</th>
+                        <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Rütbe Ad-Soyad</th>
+                        <th style="padding: 0.75rem; text-align: right; border: 1px solid #ddd;">Puan</th>
+                    </tr>
+                </thead>
+                <tbody id="durum-list">
+                    <tr><td colspan="3" style="padding: 1rem; text-align: center; color: #999;">Yükleniyor...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
-
-    <!-- Edit Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="window.closeEditModal()">&times;</span>
-            <h3>Personel Düzenle</h3>
-            <div class="form-group">
-                <label>Rütbe</label>
-                <select id="editRank">
-                    <option value="Yzb">Yzb (Yüzbaşı)</option>
-                    <option value="Bnb">Bnb (Binbaşı)</option>
-                    <option value="Ütğm">Ütğm (Üsteğmen)</option>
-                    <option value="Tğm">Tğm (Teğmen)</option>
-                    <option value="Alb">Alb (Albay)</option>
-                    <option value="Yb">Yb (Yarbay)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Ad-Soyad</label>
-                <input type="text" id="editName">
-            </div>
-            <div class="form-group">
-                <label>Mevcut Puan</label>
-                <input type="number" id="editPoints" min="0" placeholder="Puanı düzenle">
-            </div>
-            <div class="form-group">
-                <label>Renk</label>
-                <input type="color" id="editColor">
-            </div>
-            <button class="btn btn-primary" onclick="window.savePerson()"><i class="fas fa-save"></i> Kaydet</button>
-        </div>
+    
+    <div id="gecmis" class="tab-content">
+        <h2>Geçmiş Vardiyalar</h2>
+        <div id="historyList"></div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <div id="nihai" class="tab-content">
+        <h2>Nihai Liste</h2>
+        <div id="finalList"></div>
+    </div>
 
     <script>
-        // Supabase başlatma
+        // Supabase init
         const supabaseUrl = 'https://vyltlhuwjmqxcoympmhu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bHRsaHV3am1xeGNveW1wbWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMzc4NzcsImV4cCI6MjEwNDgxMzg3N30.3Tz3Kddqohhxa3pRijMkPZPowbSHsOEwYkZ2dCxlpSM';
-
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-        // Tarih format fonksiyonu
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const [year, month, day] = dateStr.split('-');
-            const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-            const monthName = months[parseInt(month) - 1];
-            return `${day} ${monthName} ${year}`;
-        }
-
-        // Değişkenler
-        let personData = [];
-        let currentShiftDate = null;
-        let currentShiftMembers = [];
-        let currentShiftNobetci = null;
-        let editingPersonId = null;
-        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
         
-        // Rütbe sırası (v6.2)
-        const rankOrder = ['Alb', 'Yb', 'Bnb', 'Yzb', 'Ütğm', 'Tğm'];
-        
-        // Shuffle fonksiyonu (aynı puana sahip olanları rastgele sırala)
-        function shuffleByPoints(arr) {
-            const result = [];
-            const grouped = {};
-            
-            // Puanlara göre grupla
-            arr.forEach(item => {
-                const key = item.points || 0;
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(item);
-            });
-            
-            // Her puan grubunu shuffle et ve sonuca ekle
-            Object.keys(grouped).sort((a, b) => b - a).forEach(points => {
-                const group = grouped[points];
-                for (let i = group.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [group[i], group[j]] = [group[j], group[i]];
-                }
-                result.push(...group);
-            });
-            
-            return result;
-        }
-
-        // Tab Yönetimi
-        window.switchTab = function(tabName) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            
-            if (tabName === 'yonetim') window.updateChecklists();
-            if (tabName === 'puan') window.renderPointsList();
-            if (tabName === 'gecmis') window.renderHistoryList();
-            if (tabName === 'nihai') window.renderFinalList();
-        };
-
-        // Personel Yönetimi
-        window.addPerson = async function() {
-            const rank = document.getElementById('inputRank').value;
-            const name = document.getElementById('inputName').value;
-            const color = document.getElementById('inputColor').value;
-            const initialPoints = parseInt(document.getElementById('inputInitialPoints').value) || 0;
-            
-            if (!name) { alert('Lütfen ad-soyad girin'); return; }
-            
-            try {
-                await supabase.from('personel').insert([{ rank, name, color, points: initialPoints }]);
-                document.getElementById('inputName').value = '';
-                document.getElementById('inputInitialPoints').value = '0';
-                window.loadAllData();
-                alert('✅ ' + rank + '. ' + name + ' başlangıç puanı: ' + initialPoints + ' olarak eklendi');
-            } catch (e) {
-                alert('Hata: ' + e.message);
-            }
-        };
-
-        window.loadAllData = async function() {
-            try {
-                console.log('🔄 loadAllData başladı...');
-                console.log('Supabase:', supabase);
-                const { data, error } = await supabase.from('personel').select('*');
-                if (error) {
-                    console.error('❌ Supabase Error:', error);
-                    return;
-                }
-                console.log('✅ Veri geldi:', data);
-                personData = (data || []).sort((a, b) => a.color.localeCompare(b.color));
-                console.log('📊 personData:', personData);
-                window.renderPersonList();
-                window.updateChecklists();
-            } catch (e) {
-                console.error('❌ Veri yükleme hatası:', e);
-            }
-        };
-
-        window.renderPersonList = function() {
-            const list = document.getElementById('personList');
-            if (!list) {
-                console.error('❌ personList element bulunamadı!');
-                return;
-            }
-            console.log('📝 renderPersonList - personData:', personData);
-            if (!personData || personData.length === 0) {
-                list.innerHTML = '<div class="empty-state">📭 Henüz personel eklenmemiş.</div>';
-                return;
-            }
-            list.innerHTML = personData.map(p => `
-                <div class="person-card" style="border-left-color: ${p.color};">
-                    <h4>${p.rank}. ${p.name}</h4>
-                    <p style="color: #999; font-size: 12px;">Puan: ${p.points || 0}</p>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="btn btn-primary" onclick="window.openEditModal(${p.id})" style="flex: 1; padding: 0.5rem;"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger" onclick="window.deletePerson(${p.id})" style="flex: 1; padding: 0.5rem;"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        };
-
-        window.openEditModal = function(id) {
-            const person = personData.find(p => p.id === id);
-            if (!person) return;
-            editingPersonId = id;
-            document.getElementById('editRank').value = person.rank;
-            document.getElementById('editName').value = person.name;
-            document.getElementById('editPoints').value = person.points || 0;
-            document.getElementById('editColor').value = person.color;
-            document.getElementById('editModal').classList.add('active');
-        };
-
-        window.closeEditModal = function() {
-            document.getElementById('editModal').classList.remove('active');
-        };
-
-        window.savePerson = async function() {
-            const rank = document.getElementById('editRank').value;
-            const name = document.getElementById('editName').value;
-            const color = document.getElementById('editColor').value;
-            const points = parseInt(document.getElementById('editPoints').value) || 0;
-            
-            try {
-                await supabase.from('personel').update({ rank, name, color, points }).eq('id', editingPersonId);
-                window.closeEditModal();
-                window.loadAllData();
-                alert('✅ Personel güncellendi');
-            } catch (e) {
-                alert('Hata: ' + e.message);
-            }
-        };
-
-        window.deletePerson = async function(id) {
-            if (!confirm('Silmek istediğinize emin misiniz?')) return;
-            try {
-                await supabase.from('personel').delete().eq('id', id);
-                window.loadAllData();
-            } catch (e) {
-                alert('Hata: ' + e.message);
-            }
-        };
-
-        // Vardiya Yönetimi
-        window.createNewShift = function() {
-            const date = document.getElementById('shiftDate').value;
-            if (!date) { alert('Lütfen tarihi seçiniz'); return; }
-            currentShiftDate = date;
-            currentShiftMembers = [];
-            currentShiftNobetci = null;
-            window.updateChecklists();
-            alert('✅ Vardiya tarihi seçildi: ' + formatDate(date));
-        };
-
-        window.updateChecklists = function() {
-            // Personelleri rütbeye göre sort et (v6.2)
-            const sortedByRank = [...personData].sort((a, b) => {
-                const rankIndexA = rankOrder.indexOf(a.rank);
-                const rankIndexB = rankOrder.indexOf(b.rank);
-                return rankIndexA - rankIndexB;
-            });
-            
-            const checklist = document.getElementById('checklist');
-            checklist.innerHTML = sortedByRank.map(p => `
-                <label class="checkbox-item">
-                    <input type="checkbox" data-id="${p.id}" onchange="window.updateSelectedMembers()">
-                    <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
-                </label>
-            `).join('');
-            window.updateNobList();
-        };
-
-        window.updateSelectedMembers = function() {
-            const checked = document.querySelectorAll('#checklist input:checked');
-            currentShiftMembers = Array.from(checked).map(c => parseInt(c.dataset.id));
-            window.updateNobList();
-        };
-
-        window.updateNobList = function() {
-            const selected = personData.filter(p => currentShiftMembers.includes(p.id));
-            const nobList = document.getElementById('nobList');
-            nobList.innerHTML = selected.map(p => `
-                <label class="checkbox-item">
-                    <input type="radio" name="nobetci" value="${p.id}" onchange="window.setNobetci(${p.id})">
-                    <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
-                </label>
-            `).join('');
-        };
-
-        window.setNobetci = function(id) {
-            currentShiftNobetci = id;
-        };
-
-        window.saveShiftMembers = async function() {
-            if (!currentShiftDate) { alert('Önce tarihi seçiniz'); return; }
-            if (currentShiftMembers.length === 0) { alert('Lütfen personel seçiniz'); return; }
-            
-            try {
-                console.log('Kaydetme:', { date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci });
-                
-                // shift tablosuna kaydet (live vardiya)
-                await supabase.from('shift').upsert([{ id: 1, date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci }]);
-                
-                // shifts_history'ye de kaydet (puan girişi için)
-                const memberMap = {};
-                currentShiftMembers.forEach(id => memberMap[id] = 0);
-                
-                await supabase.from('shifts_history').insert([{
-                    date: currentShiftDate,
-                    members_with_points: memberMap,
-                    nobetci: currentShiftNobetci
-                }], { onConflict: 'date' });
-                
-                alert('✅ Vardiya kaydedildi!\n' + currentShiftMembers.length + ' kişi seçildi.\n\nPuanlama sekmesine gidin ve puanları girin.');
-                window.renderPointsList();
-                window.switchTab('puan');
-            } catch (e) {
-                alert('Hata: ' + e.message);
-                console.error('SaveShift Error:', e);
-            }
-        };
-
-        // Puanlama - v6: Dinamik sekmeler
-        let selectedPointTab = null;
-        
-        window.cancelScoring = async function() {
-            if (!selectedPointTab) {
-                alert('⚠️ İptal edilecek bir vardiya yok');
-                return;
-            }
-            
-            if (!confirm('⚠️ Bu vardiya puanlama kaydını iptal etmek istediğinize emin misiniz?\n\nTarih: ' + formatDate(selectedPointTab))) {
-                return;
-            }
-            
-            try {
-                // Vardiyayı shifts_history'den sil
-                await supabase.from('shifts_history').delete().eq('date', selectedPointTab);
-                
-                alert('✅ Vardiya kaydı iptal edildi');
-                selectedPointTab = null;
-                window.renderPointsList();
-            } catch (e) {
-                alert('❌ Hata: ' + e.message);
-                console.error('cancelScoring Error:', e);
-            }
-        };
-        
-        window.renderPointsList = async function() {
-            console.log('renderPointsList v6.4 çağrıldı');
-            
-            try {
-                // Tamamlanmamış vardiyadarı çek (completed != true)
-                const { data: history } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
-                console.log('Tüm vardiyadar:', history);
-                
-                // v6.4: Tamamlanmamış vardiyadarı filtrele (completed == false or null)
-                const pendingShifts = history ? history.filter(h => !h.completed) : [];
-                console.log('Tamamlanmamış vardiyadar:', pendingShifts);
-                
-                if (!pendingShifts || pendingShifts.length === 0) {
-                    document.getElementById('pointsTabs').innerHTML = '';
-                    document.getElementById('pointsList').innerHTML = '<div class="empty-state"><p>✅ Tüm vardiyalar tamamlandı!</p><p style="font-size: 12px; color: #999;">Geçmiş Vardiyalar sekmesinden tamamlanan vardiyaları görebilirsiniz.</p></div>';
-                    return;
-                }
-                
-                // Sekmeler oluştur
-                const tabsHtml = pendingShifts.map(h => `
-                    <button class="point-tab ${selectedPointTab === h.date ? 'active' : ''}" 
-                            onclick="window.selectPointTab('${h.date}')" 
-                            style="font-size: 13px;">
-                        📅 ${formatDate(h.date)}
-                    </button>
-                `).join('');
-                
-                document.getElementById('pointsTabs').innerHTML = tabsHtml;
-                
-                // İlk sekmeden başla
-                if (!selectedPointTab && pendingShifts.length > 0) {
-                    selectedPointTab = pendingShifts[0].date;
-                }
-                
-                // Seçili sekmesini göster
-                window.selectPointTab(selectedPointTab);
-                
-            } catch (e) {
-                console.error('renderPointsList hatası:', e);
-                document.getElementById('pointsList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
-            }
-        };
-        
-        window.selectPointTab = async function(date) {
-            selectedPointTab = date;
-            console.log('selectPointTab:', date);
-            
-            // Sekmeler: aktif olanı vurgula
-            document.querySelectorAll('.point-tab').forEach(tab => {
-                if (tab.textContent.includes(formatDate(date))) {
-                    tab.classList.add('active');
-                } else {
-                    tab.classList.remove('active');
-                }
-            });
-            
-            try {
-                // O tarihte seçilenleri çek
-                const { data: shift } = await supabase.from('shifts_history').select('*').eq('date', date).single();
-                
-                if (!shift) {
-                    document.getElementById('pointsList').innerHTML = '<div class="empty-state">Vardiya bulunamadı</div>';
-                    return;
-                }
-                
-                // Seçilen personeller
-                const memberIds = Object.keys(shift.members_with_points || {}).map(id => parseInt(id));
-                let selected = personData.filter(p => memberIds.includes(p.id));
-                
-                // v6.2: Rütbeye göre sort et
-                selected = selected.sort((a, b) => {
-                    const rankIndexA = rankOrder.indexOf(a.rank);
-                    const rankIndexB = rankOrder.indexOf(b.rank);
-                    return rankIndexA - rankIndexB;
-                });
-                
-                // Puan girişi HTML'i
-                const html = '<h3 style="margin-bottom: 1rem;">Personellere Puan Veriniz (Vardiya: ' + formatDate(date) + ')</h3>' + 
-                    selected.map(p => `
-                        <div class="form-group">
-                            <label>${p.rank}. ${p.name}</label>
-                            <input type="number" id="puan-${p.id}" min="0" max="20" value="${shift.members_with_points[p.id] || 0}" placeholder="Puan girin">
-                        </div>
-                    `).join('');
-                
-                document.getElementById('pointsList').innerHTML = html;
-                document.getElementById('pointsList').dataset.shiftDate = date;
-                document.getElementById('pointsList').dataset.memberIds = JSON.stringify(memberIds);
-                
-            } catch (e) {
-                console.error('selectPointTab hatası:', e);
-                document.getElementById('pointsList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
-            }
-        };
-
-        window.savePointsAndFinish = async function() {
-            const shiftDate = document.getElementById('pointsList').dataset.shiftDate;
-            const memberIds = JSON.parse(document.getElementById('pointsList').dataset.memberIds || '[]');
-            
-            if (!shiftDate || memberIds.length === 0) {
-                alert('⚠️ Lütfen önce bir vardiya sekmesi seçiniz');
-                return;
-            }
-            
-            // Puan verilerini topla
-            const pointsData = {};
-            let totalPoints = 0;
-            
-            memberIds.forEach(id => {
-                const puan = parseInt(document.getElementById(`puan-${id}`).value) || 0;
-                pointsData[id] = puan;
-                totalPoints += puan;
-            });
-            
-            const avgPoints = Math.round(totalPoints / memberIds.length);
-            
-            // CONFIRMATION DİALOGU
-            const confirmMsg = `
-⚠️ KAYIT ONAYLAMASI
-
-Vardiya Tarihi: ${formatDate(shiftDate)}
-Puan Verilen Personel: ${memberIds.length}
-Toplam Puan: ${totalPoints}
-Ortalama Puan (Gelmeyenlere Eklenecek): ${avgPoints}
-
-Emin misiniz?
-            `;
-            
-            if (!confirm(confirmMsg)) {
-                alert('❌ İşlem iptal edildi');
-                return;
-            }
-            
-            try {
-                // 1. Seçilenlere puan ekle
-                console.log('Step 1: Seçilenlere puan ekle...');
-                for (let id of memberIds) {
-                    const person = personData.find(p => p.id === id);
-                    if (person) {
-                        const newPoints = (person.points || 0) + pointsData[id];
-                        await supabase.from('personel').update({ points: newPoints }).eq('id', id);
-                        console.log(`${person.rank}. ${person.name}: ${person.points} + ${pointsData[id]} = ${newPoints}`);
-                    }
-                }
-                
-                // 2. Seçilmeyenlere ortalama puan ekle
-                console.log('Step 2: Seçilmeyenlere ortalama puan ekle...');
-                const allPersons = personData.filter(p => !memberIds.includes(p.id));
-                for (let p of allPersons) {
-                    const newPoints = (p.points || 0) + avgPoints;
-                    await supabase.from('personel').update({ points: newPoints }).eq('id', p.id);
-                    console.log(`${p.rank}. ${p.name}: ${p.points} + ${avgPoints} = ${newPoints}`);
-                }
-                
-                // 3. Geçmiş vardiyayı güncelle - completed = true
-                console.log('Step 3: Vardiyayı tamamlandı olarak işaretle...');
-                const { error } = await supabase.from('shifts_history').update({ 
-                    members_with_points: pointsData,
-                    completed: true 
-                }).eq('date', shiftDate);
-                
-                if (error) {
-                    console.error('UPDATE ERROR:', error);
-                    throw error;
-                }
-                
-                console.log('✅ Tüm işlemler başarılı!');
-                alert('✅ Puanlama kaydedildi!\n\nSeçilmeyenlere ' + avgPoints + ' puan eklendi');
-                
-                // 4. UI'yi yenile
-                selectedPointTab = null;
-                window.loadAllData();
-                await new Promise(r => setTimeout(r, 500)); // 500ms bekle
-                window.renderPointsList();
-                window.renderHistoryList();
-                
-            } catch (e) {
-                alert('❌ Hata: ' + e.message);
-                console.error('savePointsAndFinish Error:', e);
-            }
-        };
-        
-        window.skipScoringFinish = async function() {
-            const shiftDate = document.getElementById('pointsList').dataset.shiftDate;
-            const memberIds = JSON.parse(document.getElementById('pointsList').dataset.memberIds || '[]');
-            
-            if (!shiftDate || memberIds.length === 0) {
-                alert('⚠️ Lütfen önce bir vardiya sekmesi seçiniz');
-                return;
-            }
-            
-            if (!confirm('⚠️ KİMSEYE PUAN VERMEDİN!\n\nTarih: ' + formatDate(shiftDate) + '\n\nTüm puanları 0 olarak kaydedecek.\nEmin misiniz?')) {
-                return;
-            }
-            
-            try {
-                console.log('Step 1: Tüm seçilenlere 0 puan yaz...');
-                
-                // Tüm seçilenlere 0 puan
-                const pointsData = {};
-                memberIds.forEach(id => {
-                    pointsData[id] = 0;
-                });
-                
-                // Seçilmeyenlere 0 puan (ortalama = 0)
-                console.log('Step 2: Seçilmeyenlere 0 puan yaz...');
-                const allPersons = personData.filter(p => !memberIds.includes(p.id));
-                for (let p of allPersons) {
-                    await supabase.from('personel').update({ points: p.points || 0 }).eq('id', p.id);
-                }
-                
-                // Vardiyayı completed = true ile işaretle
-                console.log('Step 3: Vardiyayı tamamlandı olarak işaretle...');
-                const { error } = await supabase.from('shifts_history').update({ 
-                    members_with_points: pointsData,
-                    completed: true 
-                }).eq('date', shiftDate);
-                
-                if (error) {
-                    console.error('UPDATE ERROR:', error);
-                    throw error;
-                }
-                
-                console.log('✅ Tüm işlemler başarılı!');
-                alert('✅ Vardiya boş bırakıldı (0 puan)');
-                
-                // UI'yi yenile
-                selectedPointTab = null;
-                window.loadAllData();
-                await new Promise(r => setTimeout(r, 500)); // 500ms bekle
-                window.renderPointsList();
-                window.renderHistoryList();
-                
-            } catch (e) {
-                alert('❌ Hata: ' + e.message);
-                console.error('skipScoringFinish Error:', e);
-            }
-        };
-
-        // Geçmiş Vardiyalar - v6.5: Debug log + tamamlanma durumu
-        window.renderHistoryList = async function() {
-            try {
-                const { data } = await supabase.from('shifts_history').select('*').order('date', { ascending: false });
-                const list = document.getElementById('historyList');
-                
-                if (!data || data.length === 0) {
-                    list.innerHTML = '<div class="empty-state">Geçmiş vardiya yok</div>';
-                    return;
-                }
-                
-                console.log('Geçmiş vardiyalar:', data);
-                
-                let html = '';
-                for (let h of data) {
-                    const memberIds = Object.keys(h.members_with_points || {}).map(id => parseInt(id));
-                    const selected = personData.filter(p => memberIds.includes(p.id));
-                    
-                    console.log(`Tarih: ${h.date}, Personel: ${memberIds.length}, Tamamlandı: ${h.completed}`);
-                    
-                    html += `<div class="person-card" style="border-left: 5px solid #667eea; margin-bottom: 1rem;">
-                        <h3>📅 ${formatDate(h.date)}</h3>
-                        <p style="color: #666; font-size: 12px; margin: 0.5rem 0;">
-                            Katılanlar: ${selected.length} | ${h.completed ? '✅ Tamamlandı' : '⏳ Devam Ediyor'}
-                        </p>
-                        <div style="font-size: 12px; background: #f5f5f5; padding: 0.75rem; border-radius: 6px; margin-top: 0.75rem;">
-                            ${selected.map(p => `
-                                <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
-                                    <span>${p.rank}. ${p.name}</span>
-                                    <strong style="color: #667eea;">+${h.members_with_points[p.id] || 0} puan</strong>
-                                </div>
-                            `).join('')}
-                        </div>`;
-                    
-                    if (h.nobetci) {
-                        const nob = personData.find(p => p.id === h.nobetci);
-                        if (nob) {
-                            html += `<div style="margin-top: 0.75rem; padding: 0.5rem; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); border-radius: 6px; font-size: 12px; box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3);">
-                                👑 <strong>Nöbetçi:</strong> ${nob.rank}. ${nob.name}
-                            </div>`;
-                        }
-                    }
-                    
-                    html += `</div>`;
-                }
-                
-                list.innerHTML = html;
-            } catch (e) {
-                console.error('renderHistoryList Error:', e);
-                document.getElementById('historyList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
-            }
-        };
-        window.renderFinalList = async function() {
-            try {
-                const { data: shift } = await supabase.from('shift').select('*').eq('id', 1).single();
-                if (!shift || !shift.members) {
-                    document.getElementById('finalList').innerHTML = '<div class="empty-state">Liste hazır değil</div>';
-                    return;
-                }
-
-                const selected = personData.filter(p => shift.members.includes(p.id));
-                
-                // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
-                const sorted = shuffleByPoints(selected);
-
-                // Nöbetçi olmayan personel
-                const notNobetci = sorted.filter(p => p.id !== shift.nobetci);
-                
-                // Yarısında böl
-                const mid = Math.ceil(notNobetci.length / 2);
-                const leftColumn = notNobetci.slice(0, mid);
-                const rightColumn = notNobetci.slice(mid);
-
-                let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div><div class="final-grid">`;
-                
-                // SOL SÜTUN
-                html += `<div class="final-column">`;
-                let num = 1;
-                leftColumn.forEach(p => {
-                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
-                    num++;
-                });
-                html += `</div>`;
-                
-                // SAĞ SÜTUN
-                html += `<div class="final-column">`;
-                rightColumn.forEach(p => {
-                    html += `<div class="final-item" style="background: ${p.color};"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
-                    num++;
-                });
-                html += `</div>`;
-                
-                html += '</div>';
-
-                if (shift.nobetci) {
-                    const nob = personData.find(p => p.id === shift.nobetci);
-                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name}</div>`;
-                }
-
-                document.getElementById('finalList').innerHTML = html;
-            } catch (e) {
-                document.getElementById('finalList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
-            }
-        };
-
-        window.downloadAsImage = async function() {
-            const element = document.getElementById('finalList');
-            try {
-                const canvas = await html2canvas(element);
-                const link = document.createElement('a');
-                link.href = canvas.toDataURL('image/jpeg', 0.95);
-                link.download = `Vardiya_${formatDate(currentShiftDate)}.jpg`;
-                link.click();
-            } catch (e) {
-                alert('Hata: ' + e.message);
-            }
-        };
-
-        window.shareToWhatsApp = async function() {
-            const element = document.getElementById('finalList');
-            try {
-                const canvas = await html2canvas(element);
-                canvas.toBlob(async (blob) => {
-                    const file = new File([blob], 'vardiya.jpg', { type: 'image/jpeg' });
-                    await navigator.share({ title: 'Vardiya Listesi', text: formatDate(currentShiftDate), files: [file] });
-                });
-            } catch (e) {
-                alert('Paylaş yapılamadı');
-            }
-        };
-
-        // İnitialization
-        // PIN Koruması & Brute Force Koruması
-        // PIN Koruması & Brute Force Koruması - LOAD EVENT DIŞINDA
         const DEFAULT_PIN = "1881";
-        
-        function getFailedAttempts() {
-            const data = JSON.parse(localStorage.getItem('pinFailedAttempts') || '{"count": 0, "lockUntil": 0}');
-            return data;
-        }
-        
-        function setFailedAttempts(count, lockUntil) {
-            localStorage.setItem('pinFailedAttempts', JSON.stringify({ count, lockUntil }));
-        }
-        
-        function isLocked() {
-            const attempts = getFailedAttempts();
-            const now = new Date().getTime();
-            if (attempts.lockUntil > now) return true;
-            if (attempts.lockUntil <= now && attempts.count >= 5) setFailedAttempts(0, 0);
-            return false;
-        }
-        
-        function getLockedTimeRemaining() {
-            const attempts = getFailedAttempts();
-            const remaining = attempts.lockUntil - new Date().getTime();
-            return remaining <= 0 ? 0 : Math.ceil(remaining / 1000);
-        }
-        
-        function updatePinDisplay() {
-            const pinInput = document.getElementById('pinInput');
-            const pinSubmitBtn = document.getElementById('pinSubmitBtn');
-            const pinError = document.getElementById('pinError');
-            const pinInfo = document.getElementById('pinInfo');
-            if (isLocked()) {
-            if (!pinInput || !pinSubmitBtn || !pinError || !pinInfo) return;
-                const remaining = getLockedTimeRemaining();
-                pinInput.disabled = true;
-                pinSubmitBtn.disabled = true;
-                pinError.style.display = 'none';
-                pinInfo.style.display = 'block';
-                pinInfo.style.color = '#dc2626';
-                pinInfo.innerHTML = `🔒 Kilide: ${Math.floor(remaining/60)}:${(remaining%60).toString().padStart(2,'0')} kaldı`;
-            } else {
-                pinInput.disabled = false;
-                pinSubmitBtn.disabled = false;
-                const attempts = getFailedAttempts();
-                const remaining = 5 - attempts.count;
-                if (attempts.count > 0 && attempts.count < 5) {
-                    pinInfo.style.display = 'block';
-                    pinInfo.style.color = '#f59e0b';
-                    pinInfo.innerHTML = `❌ ${remaining} deneme kaldı`;
-                } else {
-                    pinInfo.style.display = 'none';
-                }
-            }
-        }
+        let personData = [];
         
         function checkPin() {
-            if (isLocked()) {
-                updatePinDisplay();
-                return;
-            }
             const pinInput = document.getElementById('pinInput');
             const pinError = document.getElementById('pinError');
             const enteredPin = pinInput.value;
+            
             if (enteredPin === DEFAULT_PIN) {
                 localStorage.setItem('pinSessionTime', new Date().getTime());
-                setFailedAttempts(0, 0);
                 document.getElementById('pinModal').classList.remove('active');
                 document.body.style.overflow = 'auto';
                 pinInput.value = '';
                 pinError.style.display = 'none';
             } else {
-                const attempts = getFailedAttempts();
-                let newCount = attempts.count + 1;
-                let lockUntil = 0;
-                if (newCount >= 5) {
-                    lockUntil = new Date().getTime() + (15 * 60 * 1000);
-                    pinError.innerHTML = `🔒 Çok fazla yanlış deneme! 15 dakika beklemelisiniz.`;
-                }
-                setFailedAttempts(newCount, lockUntil);
                 pinError.style.display = 'block';
                 pinInput.value = '';
-                updatePinDisplay();
             }
         }
-        
         
         function logout() {
             localStorage.removeItem('pinSessionTime');
             document.getElementById('pinModal').classList.add('active');
-            const pinInput = document.getElementById('pinInput');
-            if (pinInput) pinInput.value = '';
+            document.getElementById('pinInput').value = '';
             document.body.style.overflow = 'hidden';
-            updatePinDisplay();
         }
         
         function isPinSessionValid() {
@@ -955,43 +153,72 @@ Emin misiniz?
             const now = new Date().getTime();
             return (now - parseInt(sessionTime)) < (30 * 24 * 60 * 60 * 1000);
         }
-
         
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        }
+        
+        async function loadAllData() {
+            try {
+                const { data, error } = await supabase.from('personel').select('*');
+                if (error) {
+                    console.error('Veri hatası:', error);
+                    return;
+                }
+                personData = data || [];
+                renderPersonList();
+                renderDurumList();
+            } catch (e) {
+                console.error('Hata:', e);
+            }
+        }
+        
+        function renderPersonList() {
+            const list = document.getElementById('personList');
+            if (!list) return;
+            
+            if (!personData || personData.length === 0) {
+                list.innerHTML = '<p>Personel yok</p>';
+                return;
+            }
+            
+            list.innerHTML = personData.map(p => `
+                <div class="person-card" style="border-left-color: ${p.color || '#556B2F'};">
+                    <h4>${p.rank}. ${p.name}</h4>
+                    <p>Puan: ${p.points || 0}</p>
+                </div>
+            `).join('');
+        }
+        
+        
+        function renderDurumList() {
+            const sorted = [...personData].sort((a, b) => (b.points || 0) - (a.points || 0));
+            const list = document.getElementById('durum-list');
+            if (!list) return;
+            
+            list.innerHTML = sorted.map((p, idx) => `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; text-align: left; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; text-align: left;">${p.rank} ${p.name}</td>
+                    <td style="padding: 0.75rem; border: 1px solid #ddd; text-align: right; font-weight: bold; color: #556B2F;">${p.points || 0}</td>
+                </tr>
+            `).join('');
+        }
         window.addEventListener('load', () => {
             if (!isPinSessionValid()) {
                 document.getElementById('pinModal').classList.add('active');
                 document.body.style.overflow = 'hidden';
-                updatePinDisplay();
-            }
-        
-        window.addEventListener('load', () => {
-            if (!isPinSessionValid()) {
-                document.getElementById('pinModal').classList.add('active');
-                document.body.style.overflow = 'hidden';
-                updatePinDisplay();
-            }
-            window.loadAllData();
-            const editModal = document.getElementById('editModal');
-            if (editModal) {
-                editModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'editModal') window.closeEditModal();
-                });
+            } else {
+                loadAllData();
             }
         });
         
-        const pinInputEl = document.getElementById('pinInput');
-        if (pinInputEl) {
-            pinInputEl.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') checkPin();
-            });
-        }
-        
-        setInterval(() => {
-            if (isLocked()) {
-                updatePinDisplay();
-            }
-        }, 1000);
-        }, 1000);
+        document.getElementById('pinInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPin();
+        });
     </script>
 </body>
 </html>

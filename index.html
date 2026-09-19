@@ -426,6 +426,7 @@
         // Değişkenler
         let personData = [];
         let currentShiftDate = null;
+        let currentFinalShiftDate = null;
         let currentShiftMembers = [];
         let currentShiftNobetci = null;
         let editingPersonId = null;
@@ -644,7 +645,7 @@
                 const memberMap = {};
                 currentShiftMembers.forEach(id => memberMap[id] = 0);
                 
-                await supabase.from('shifts_history').insert([{
+                await supabase.from('shifts_history').upsert([{
                     date: currentShiftDate,
                     members_with_points: memberMap,
                     nobetci: currentShiftNobetci
@@ -985,6 +986,7 @@ Emin misiniz?
                 }
 
                 const selected = personData.filter(p => shift.members.includes(p.id));
+                currentFinalShiftDate = shift.date;
                 
                 // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
                 const sorted = shuffleByPoints(selected);
@@ -1224,7 +1226,7 @@ Emin misiniz?
                 const canvas = await html2canvas(element);
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/jpeg', 0.95);
-                link.download = `Vardiya_${formatDate(currentShiftDate)}.jpg`;
+                link.download = `Vardiya_${formatDate(currentFinalShiftDate)}.jpg`;
                 link.click();
             } catch (e) {
                 alert('Hata: ' + e.message);
@@ -1237,7 +1239,7 @@ Emin misiniz?
                 const canvas = await html2canvas(element);
                 canvas.toBlob(async (blob) => {
                     const file = new File([blob], 'vardiya.jpg', { type: 'image/jpeg' });
-                    await navigator.share({ title: 'Vardiya Listesi', text: formatDate(currentShiftDate), files: [file] });
+                    await navigator.share({ title: 'Vardiya Listesi', text: formatDate(currentFinalShiftDate), files: [file] });
                 });
             } catch (e) {
                 alert('Paylaş yapılamadı');

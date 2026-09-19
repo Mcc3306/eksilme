@@ -230,6 +230,11 @@
             const finalList = document.getElementById('finalList');
             if (!finalList) return;
             
+            if (!personData || personData.length === 0) {
+                finalList.innerHTML = '<p style="color: #999; padding: 2rem; text-align: center;">📭 Henüz personel eklenmemiş.</p>';
+                return;
+            }
+            
             const sorted = [...personData].sort((a, b) => (b.points || 0) - (a.points || 0));
             
             finalList.innerHTML = sorted.map((p, idx) => `

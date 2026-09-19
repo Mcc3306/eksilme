@@ -3,320 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3'üncü Vardiya Eksilme Listesi v8.5</title>
+    <title>3'üncü Vardiya Eksilme Listesi v8.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
-        
-        .pin-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,1); z-index: 9999; align-items: center; justify-content: center; }
-        .pin-modal.active { display: flex; }
-        .pin-modal-content { background: white; padding: 3rem; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 350px; }
-        .pin-modal-content h2 { color: #556B2F; margin-bottom: 1rem; font-size: 24px; text-transform: uppercase; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f0;
+        }
+
+        /* ===== PIN MODAL ===== */
+        .pin-modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .pin-modal-content {
+            background: white;
+            padding: 3rem 2.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            max-width: 350px;
+            width: 90%;
+            border-top: 6px solid #556B2F;
+        }
+        .pin-modal-content .lock-icon { font-size: 48px; margin-bottom: 1rem; }
+        .pin-modal-content h2 {
+            color: #556B2F;
+            margin-bottom: 0.5rem;
+            font-size: 22px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
         .pin-modal-content p { color: #666; margin-bottom: 2rem; font-size: 14px; }
-        .pin-input { font-size: 32px; text-align: center; letter-spacing: 10px; padding: 1rem; border: 2px solid #556B2F; border-radius: 8px; width: 100%; font-weight: bold; margin-bottom: 1.5rem; }
+        .pin-input {
+            font-size: 32px;
+            text-align: center;
+            letter-spacing: 12px;
+            padding: 1rem;
+            border: 2px solid #556B2F;
+            border-radius: 8px;
+            width: 100%;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
         .pin-input:focus { outline: none; border-color: #3d4d1e; box-shadow: 0 0 10px rgba(85,107,47,0.3); }
-        .pin-btn { background: #556B2F; color: white; padding: 0.75rem 2rem; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; width: 100%; }
+        .pin-btn {
+            background: #556B2F;
+            color: white;
+            padding: 0.9rem 2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
         .pin-btn:hover { background: #3d4d1e; }
-        .pin-error { color: #dc2626; font-size: 12px; margin-top: 0.5rem; display: none; }
-        
-        .header { background: #556B2F; color: white; padding: 2rem 1.5rem; text-align: center; position: relative; }
-        .header h1 { font-size: 24px; text-transform: uppercase; margin-bottom: 0.5rem; }
-        .header button { position: absolute; top: 15px; right: 15px; background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        
-        .tabs { display: flex; gap: 0.5rem; padding: 1rem; background: white; flex-wrap: wrap; }
-        .tab-btn { padding: 0.75rem 1.5rem; border: none; background: #f3f4f6; cursor: pointer; border-radius: 6px; font-weight: 600; }
+        .pin-error {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 0.75rem;
+            display: none;
+            font-weight: 600;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #556B2F 0%, #6B8E23 100%);
+            color: white;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+            border-bottom: 4px solid #3d4d1e;
+        }
+        .header h1 {
+            font-size: 22px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.4rem;
+        }
+        .header h1 i { margin-right: 0.5rem; }
+        .header p { font-size: 13px; opacity: 0.9; letter-spacing: 1px; }
+        .header .logout-btn {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .header .logout-btn:hover { background: #b91c1c; }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: white;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #eee;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: #f3f4f6;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
         .tab-btn.active { background: #556B2F; color: white; }
-        
-        .tab-content { display: none; padding: 1.5rem; }
+        .tab-btn:hover:not(.active) { background: #e5e7eb; }
+
+        .tab-content { display: none; padding: 1.5rem; min-height: 400px; }
         .tab-content.active { display: block; }
-        
-        .person-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
-        .person-card { background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #556B2F; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .person-card h4 { margin-bottom: 0.5rem; }
-        .person-card p { color: #999; font-size: 12px; }
-        
-        .btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .btn-primary { background: #556B2F; color: white; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-success { background: #10B981; color: white; }
-        
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        table th { background: #556B2F; color: white; padding: 0.75rem; text-align: left; }
-        table td { padding: 0.75rem; border-bottom: 1px solid #eee; }
+        .tab-content h2 { color: #556B2F; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
-    <div class="pin-modal active" id="pinModal">
+
+    <!-- PIN MODAL -->
+    <div class="pin-modal" id="pinModal">
         <div class="pin-modal-content">
-            <h2>🔐 PIN KORUMASI</h2>
+            <div class="lock-icon">🔐</div>
+            <h2>PIN Koruması</h2>
             <p>Uygulamaya erişmek için PIN'i girin</p>
-            <input type="password" id="pinInput" class="pin-input" maxlength="6" placeholder="••••" />
+            <input type="password" id="pinInput" class="pin-input" maxlength="6" placeholder="••••" inputmode="numeric" />
             <button class="pin-btn" onclick="checkPin()">GİRİŞ</button>
             <div class="pin-error" id="pinError">❌ Yanlış PIN!</div>
         </div>
     </div>
-    
+
+    <!-- HEADER -->
     <div class="header">
-        <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi v8.5</h1>
+        <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi</h1>
         <p>⚜️ Profesyonel Vardiya Yönetim Sistemi ⚜️</p>
-        <button onclick="logout()">🔐 ÇIKIŞ</button>
+        <button class="logout-btn" onclick="logout()">🔐 ÇIKIŞ</button>
     </div>
-    
+
+    <!-- TABS -->
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('liste')"><i class="fas fa-users"></i> İsim Listesi</button>
         <button class="tab-btn" onclick="switchTab('yonetim')"><i class="fas fa-calendar"></i> Vardiya Yönetimi</button>
         <button class="tab-btn" onclick="switchTab('puan')"><i class="fas fa-star"></i> Puanlama</button>
-        <button class="tab-btn" onclick="switchTab('durum')"><i class="fas fa-chart-bar"></i> Puan Durumu</button>
-        <button class="tab-btn" onclick="switchTab('gecmis')"><i class="fas fa-history"></i> Geçmiş</button>
+        <button class="tab-btn" onclick="switchTab('gecmis')"><i class="fas fa-history"></i> Geçmiş Vardiyalar</button>
         <button class="tab-btn" onclick="switchTab('nihai')"><i class="fas fa-check-circle"></i> Nihai Liste</button>
     </div>
-    
+
+    <!-- TAB CONTENTS -->
     <div id="liste" class="tab-content active">
-        <h2>Personel Yönetimi</h2>
-        <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 1rem;">➕ Personel Ekle</h3>
-            <div class="form-group">
-                <label>Rütbe:</label>
-                <select id="rankInput">
-                    <option value="">Seç</option>
-                    <option value="Alb">Alb</option>
-                    <option value="Yb">Yb</option>
-                    <option value="Bnb">Bnb</option>
-                    <option value="Yzb">Yzb</option>
-                    <option value="Ütğm">Ütğm</option>
-                    <option value="Tğm">Tğm</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Ad-Soyad:</label>
-                <input type="text" id="nameInput" placeholder="Ad-Soyad" />
-            </div>
-            <button class="btn btn-success" onclick="addPerson()" style="width: 100%;">✅ Ekle</button>
-        </div>
-        
-        <h3 style="margin-bottom: 1rem;">📋 Personel Listesi</h3>
-        <div id="personList" class="person-list"></div>
+        <h2>İsim Listesi</h2>
+        <p>İsim listesi içeriği buraya gelecek.</p>
     </div>
-    
+
     <div id="yonetim" class="tab-content">
         <h2>Vardiya Yönetimi</h2>
-        <p>Vardiya yönetimi içeriği</p>
+        <p>Vardiya yönetimi içeriği buraya gelecek.</p>
     </div>
-    
+
     <div id="puan" class="tab-content">
         <h2>Puanlama</h2>
-        <p>Puanlama içeriği</p>
+        <p>Puanlama içeriği buraya gelecek.</p>
     </div>
-    
-    <div id="durum" class="tab-content">
-        <h2>Puan Durumu Çizelgesi</h2>
-        <button class="btn btn-primary" onclick="shareDurum()" style="margin-bottom: 1rem;"><i class="fas fa-share-alt"></i> Paylaş</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>Numara</th>
-                    <th>Rütbe Ad-Soyad</th>
-                    <th style="text-align: right;">Puan</th>
-                </tr>
-            </thead>
-            <tbody id="durum-list">
-                <tr><td colspan="3" style="text-align: center; color: #999;">Yükleniyor...</td></tr>
-            </tbody>
-        </table>
-    </div>
-    
+
     <div id="gecmis" class="tab-content">
         <h2>Geçmiş Vardiyalar</h2>
-        <p>Geçmiş vardiyalar</p>
+        <p>Geçmiş vardiyalar içeriği buraya gelecek.</p>
     </div>
-    
+
     <div id="nihai" class="tab-content">
-        <h2>Nihai Liste (Manuel Düzenleme)</h2>
-        <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 2px dashed #ddd;">
-            <p style="font-size: 12px; color: #666;">💡 Drag & drop ile sıra değiştirebilirsiniz. Çift tıkla adı düzenleyin.</p>
-        </div>
-        <div id="finalList"></div>
+        <h2>Nihai Liste</h2>
+        <p>Nihai liste içeriği buraya gelecek.</p>
     </div>
 
     <script>
-        const supabaseUrl = 'https://vyltlhuwjmqxcoympmhu.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bHRsaHV3am1xeGNveW1wbWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMzc4NzcsImV4cCI6MjEwNDgxMzg3N30.3Tz3Kddqohhxa3pRijMkPZPowbSHsOEwYkZ2dCxlpSM';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        
+        // ===== PIN KORUMASI (Sadece 1881, unlimited deneme) =====
         const DEFAULT_PIN = "1881";
-        let personData = [];
-        
+
         function checkPin() {
-            const enteredPin = document.getElementById('pinInput').value;
+            const pinInput = document.getElementById('pinInput');
+            const pinError = document.getElementById('pinError');
+            const enteredPin = pinInput.value;
+
             if (enteredPin === DEFAULT_PIN) {
                 localStorage.setItem('pinSessionTime', new Date().getTime());
-                document.getElementById('pinModal').classList.remove('active');
+                document.getElementById('pinModal').style.display = 'none';
                 document.body.style.overflow = 'auto';
-                document.getElementById('pinInput').value = '';
-                loadAllData();
+                pinInput.value = '';
+                pinError.style.display = 'none';
             } else {
-                document.getElementById('pinError').style.display = 'block';
-                document.getElementById('pinInput').value = '';
+                pinError.style.display = 'block';
+                pinInput.value = '';
             }
         }
-        
+
         function logout() {
             localStorage.removeItem('pinSessionTime');
-            document.getElementById('pinModal').classList.add('active');
+            document.getElementById('pinModal').style.display = 'flex';
             document.getElementById('pinInput').value = '';
             document.body.style.overflow = 'hidden';
         }
-        
+
         function isPinSessionValid() {
             const sessionTime = localStorage.getItem('pinSessionTime');
             if (!sessionTime) return false;
             const now = new Date().getTime();
-            return (now - parseInt(sessionTime)) < (30 * 24 * 60 * 60 * 1000);
+            const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+            return (now - parseInt(sessionTime)) < thirtyDaysMs;
         }
-        
+
+        // ===== TAB SWITCH =====
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
         }
-        
-        async function loadAllData() {
-            try {
-                const { data, error } = await supabase.from('personel').select('*');
-                if (error) {
-                    console.error('Veri hatası:', error);
-                    return;
-                }
-                personData = data || [];
-                renderPersonList();
-                renderDurumList();
-                renderFinalList();
-            } catch (e) {
-                console.error('Hata:', e);
-            }
-        }
-        
-        function renderPersonList() {
-            const list = document.getElementById('personList');
-            if (!list) return;
-            
-            if (!personData || personData.length === 0) {
-                list.innerHTML = '<p>Personel yok</p>';
-                return;
-            }
-            
-            list.innerHTML = personData.map(p => `
-                <div class="person-card" style="border-left-color: ${p.color || '#556B2F'};">
-                    <h4>${p.rank}. ${p.name}</h4>
-                    <p>Puan: ${p.points || 0}</p>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                        <button class="btn btn-primary" onclick="editPerson(${p.id})" style="flex: 1; padding: 0.5rem; font-size: 12px;"><i class="fas fa-edit"></i> Düzenle</button>
-                        <button class="btn btn-danger" onclick="deletePerson(${p.id})" style="flex: 1; padding: 0.5rem; font-size: 12px;"><i class="fas fa-trash"></i> Sil</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        function renderDurumList() {
-            const sorted = [...personData].sort((a, b) => (b.points || 0) - (a.points || 0));
-            const list = document.getElementById('durum-list');
-            if (!list) return;
-            
-            list.innerHTML = sorted.map((p, idx) => `
-                <tr>
-                    <td><strong>${idx + 1}</strong></td>
-                    <td>${p.rank} ${p.name}</td>
-                    <td style="text-align: right; font-weight: bold; color: #556B2F;">${p.points || 0}</td>
-                </tr>
-            `).join('');
-        }
-        
-        function renderFinalList() {
-            const finalList = document.getElementById('finalList');
-            if (!finalList) return;
-            
-            if (!personData || personData.length === 0) {
-                finalList.innerHTML = '<p style="color: #999;">Personel yok</p>';
-                return;
-            }
-            
-            const sorted = [...personData].sort((a, b) => (b.points || 0) - (a.points || 0));
-            finalList.innerHTML = sorted.map((p, idx) => `
-                <div style="padding: 1rem; background: white; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.5rem;">
-                    <strong>${idx + 1}. ${p.rank} ${p.name}</strong>
-                    <div style="color: #556B2F; font-weight: bold;">Puan: ${p.points || 0}</div>
-                </div>
-            `).join('');
-        }
-        
-        async function addPerson() {
-            const rank = document.getElementById('rankInput').value;
-            const name = document.getElementById('nameInput').value;
-            
-            if (!rank || !name) {
-                alert('Rütbe ve Ad-Soyad zorunludur!');
-                return;
-            }
-            
-            const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            
-            const { error } = await supabase.from('personel').insert([
-                { rank, name, points: 0, color }
-            ]);
-            
-            if (error) {
-                alert('Hata: ' + error.message);
-                return;
-            }
-            
-            document.getElementById('rankInput').value = '';
-            document.getElementById('nameInput').value = '';
-            loadAllData();
-        }
-        
-        function editPerson(id) {
-            alert('Düzenle özellikleri eklenmesi bekleniyor! ID: ' + id);
-        }
-        
-        function deletePerson(id) {
-            if (confirm('Bu personeli silmek istediğinize emin misiniz?')) {
-                alert('Sil özellikleri eklenmesi bekleniyor! ID: ' + id);
-            }
-        }
-        
-        function shareDurum() {
-            const table = document.querySelector('#durum table');
-            html2canvas(table).then(canvas => {
-                canvas.toBlob(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'puan-durumu.png';
-                    link.click();
-                });
-            });
-        }
-        
+
+        // ===== INIT =====
         document.getElementById('pinInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') checkPin();
         });
-        
-        window.addEventListener('load', () => {
-            if (!isPinSessionValid()) {
-                document.getElementById('pinModal').classList.add('active');
-                document.body.style.overflow = 'hidden';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('pinModal');
+            if (isPinSessionValid()) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
             } else {
-                document.getElementById('pinModal').classList.remove('active');
-                loadAllData();
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
             }
         });
     </script>

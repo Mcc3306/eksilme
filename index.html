@@ -87,7 +87,10 @@
     </div>
     
     <div id="durum" class="tab-content">
-        <h2>Puan Durumu Çizelgesi</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">Puan Durumu Çizelgesi</h2>
+            <button class="btn btn-primary" onclick="shareDurum()"><i class="fas fa-share-alt"></i> Paylaş</button>
+        </div>
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
@@ -110,8 +113,11 @@
     </div>
     
     <div id="nihai" class="tab-content">
-        <h2>Nihai Liste</h2>
-        <div id="finalList"></div>
+        <h2>Nihai Liste (Manuel Düzenleme)</h2>
+        <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 2px dashed #ddd;">
+            <p style="font-size: 12px; color: #666;">💡 Drag & drop ile sıra değiştirebilirsiniz. Çift tıkla adı düzenleyin.</p>
+        </div>
+        <div id="finalList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
     </div>
 
     <script>
@@ -171,6 +177,7 @@
                 personData = data || [];
                 renderPersonList();
                 renderDurumList();
+                renderFinalList();
             } catch (e) {
                 console.error('Hata:', e);
             }
@@ -189,6 +196,10 @@
                 <div class="person-card" style="border-left-color: ${p.color || '#556B2F'};">
                     <h4>${p.rank}. ${p.name}</h4>
                     <p>Puan: ${p.points || 0}</p>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                        <button class="btn btn-primary" onclick="editPerson(${p.id})" style="flex: 1; padding: 0.5rem; font-size: 12px;"><i class="fas fa-edit"></i> Düzenle</button>
+                        <button class="btn btn-danger" onclick="deletePerson(${p.id})" style="flex: 1; padding: 0.5rem; font-size: 12px;"><i class="fas fa-trash"></i> Sil</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -214,9 +225,106 @@
             } else {
                 loadAllData();
             }
+        
+        function renderFinalList() {
+            const finalList = document.getElementById('finalList');
+            if (!finalList) return;
+            
+            const sorted = [...personData].sort((a, b) => (b.points || 0) - (a.points || 0));
+            
+            finalList.innerHTML = sorted.map((p, idx) => `
+                <div class="final-item" draggable="true" style="padding: 1rem; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: move; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <strong>${idx + 1}. <span class="final-name" data-id="${p.id}" ondblclick="editFinalName(this)" style="cursor: text; padding: 0.25rem 0.5rem; border-radius: 4px;">${p.rank} ${p.name}</span></strong>
+                        <div style="color: #556B2F; font-weight: bold; font-size: 14px;">Puan: ${p.points || 0}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Drag & drop
+            const items = finalList.querySelectorAll('.final-item');
+            items.forEach(item => {
+                item.addEventListener('dragstart', dragStart);
+                item.addEventListener('dragover', dragOver);
+                item.addEventListener('drop', drop);
+                item.addEventListener('dragend', dragEnd);
+            });
+        }
+        
+        let draggedItem = null;
+        
+        function dragStart(e) {
+            draggedItem = this;
+            this.style.opacity = '0.5';
+        }
+        
+        function dragOver(e) {
+            e.preventDefault();
+        }
+        
+        function drop(e) {
+            e.preventDefault();
+            if (draggedItem !== this) {
+                this.parentNode.insertBefore(draggedItem, this);
+            }
+        }
+        
+        function dragEnd(e) {
+            this.style.opacity = '1';
+        }
+        
+        function editFinalName(el) {
+            const text = el.textContent;
+            const input = document.createElement('input');
+            input.value = text;
+            input.style.padding = '0.25rem';
+            input.style.borderRadius = '4px';
+            input.style.border = '1px solid #556B2F';
+            
+            el.replaceWith(input);
+            input.focus();
+            input.select();
+            
+            function save() {
+                const span = document.createElement('span');
+                span.className = 'final-name';
+                span.textContent = input.value || text;
+                span.ondblclick = function() { editFinalName(this); };
+                span.style.cursor = 'text';
+                span.style.padding = '0.25rem 0.5rem';
+                span.style.borderRadius = '4px';
+                input.replaceWith(span);
+            }
+            
+            input.onblur = save;
+            input.onkeypress = (e) => e.key === 'Enter' && save();
+        }
         });
         
         document.getElementById('pinInput').addEventListener('keypress', (e) => {
+        
+        function shareDurum() {
+            const table = document.querySelector('#durum table');
+            html2canvas(table).then(canvas => {
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'puan-durumu.png';
+                    link.click();
+                });
+            });
+        }
+        
+        function editPerson(id) {
+            alert('Düzenle özellikleri eklenmesi bekleniyor! ID: ' + id);
+        }
+        
+        function deletePerson(id) {
+            if (confirm('Bu personeli silmek istediğinize emin misiniz?')) {
+                alert('Sil özellikleri eklenmesi bekleniyor! ID: ' + id);
+            }
+        }
             if (e.key === 'Enter') checkPin();
         });
     </script>

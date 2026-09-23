@@ -1016,12 +1016,24 @@ Emin misiniz?
                 const notInList = personData.filter(p => !shift.members.includes(p.id));
                 const addOptionsHtml = notInList.map(p => `<option value="${p.id}">${p.rank}. ${p.name}</option>`).join('');
 
-                let html = `<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                // Nöbetçi değiştir dropdown (listedeki tüm personel arasından)
+                const nobetciOptionsHtml = sorted.map(p => `<option value="${p.id}" ${p.id === shift.nobetci ? 'selected' : ''}>${p.rank}. ${p.name}</option>`).join('');
+
+                let html = `<div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
                     <select id="finalAddSelect" style="flex: 1; min-width: 150px; padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;">
                         <option value="">${notInList.length ? '+ Son dakika personel ekle...' : 'Eklenecek personel yok'}</option>
                         ${addOptionsHtml}
                     </select>
                     <button class="btn btn-success" onclick="window.addFinalMember()" ${notInList.length ? '' : 'disabled'}><i class="fas fa-plus"></i> Ekle</button>
+                </div>`;
+
+                html += `<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+                    <label style="font-size: 13px; font-weight: 600; color: #556B2F;">👑 Nöbetçi:</label>
+                    <select id="finalNobetciSelect" style="flex: 1; min-width: 150px; padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;" ${sorted.length ? '' : 'disabled'}>
+                        <option value="">Seçilmedi</option>
+                        ${nobetciOptionsHtml}
+                    </select>
+                    <button class="btn btn-primary" onclick="window.changeNobetci()" ${sorted.length ? '' : 'disabled'}><i class="fas fa-crown"></i> Ata</button>
                 </div>`;
 
                 html += `<div id="finalListCapture">`;
@@ -1092,6 +1104,27 @@ Emin misiniz?
             }
         };
 
+        window.changeNobetci = async function() {
+            const select = document.getElementById('finalNobetciSelect');
+            const newId = select.value ? parseInt(select.value) : null;
+            if (!currentFinalShift) { alert('⚠️ Aktif vardiya bulunamadı'); return; }
+            if (newId === currentFinalShift.nobetci) { alert('ℹ️ Zaten bu kişi nöbetçi'); return; }
+
+            const person = newId ? personData.find(p => p.id === newId) : null;
+            const confirmText = newId
+                ? `${person ? person.rank + '. ' + person.name : 'Bu personel'} nöbetçi olarak atansın mı?`
+                : 'Nöbetçi ataması kaldırılsın mı?';
+            if (!confirm(confirmText)) return;
+
+            try {
+                await supabase.from('shift').update({ nobetci: newId }).eq('id', 1);
+                window.renderFinalList();
+            } catch (e) {
+                alert('❌ Hata: ' + e.message);
+                console.error('changeNobetci Error:', e);
+            }
+        };
+
         window.removeFinalMember = async function(id) {
             if (!currentFinalShift) { alert('⚠️ Aktif vardiya bulunamadı'); return; }
             const person = personData.find(p => p.id === id);
@@ -1114,7 +1147,7 @@ Emin misiniz?
                 }
 
                 if (currentFinalShift.nobetci === id) {
-                    alert('⚠️ Çıkarılan kişi nöbetçiydi. Yeni nöbetçiyi Vardiya Yönetimi sekmesinden seçebilirsiniz.');
+                    alert('⚠️ Çıkarılan kişi nöbetçiydi. Yukarıdaki "👑 Nöbetçi" kutusundan yenisini atayabilirsiniz.');
                 }
 
                 window.renderFinalList();

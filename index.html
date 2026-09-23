@@ -120,6 +120,17 @@
         .calendar-legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem; font-size: 11px; color: #666; }
         .calendar-legend span { display: inline-flex; align-items: center; gap: 4px; }
         .calendar-legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+        .final-remove-btn {
+            position: absolute; top: 4px; right: 4px;
+            width: 20px; height: 20px;
+            background: rgba(220,38,38,0.9); color: white;
+            border: none; border-radius: 50%;
+            cursor: pointer; font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
+            line-height: 1; padding: 0;
+        }
+        .final-remove-btn:hover { background: #b91c1c; }
     </style>
 </head>
 <body>
@@ -427,6 +438,7 @@
         let personData = [];
         let currentShiftDate = null;
         let currentFinalShiftDate = null;
+        let currentFinalShift = null;
         let currentShiftMembers = [];
         let currentShiftNobetci = null;
         let editingPersonId = null;
@@ -987,6 +999,7 @@ Emin misiniz?
 
                 const selected = personData.filter(p => shift.members.includes(p.id));
                 currentFinalShiftDate = shift.date;
+                currentFinalShift = shift;
                 
                 // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
                 const sorted = shuffleByPoints(selected);
@@ -999,13 +1012,29 @@ Emin misiniz?
                 const leftColumn = notNobetci.slice(0, mid);
                 const rightColumn = notNobetci.slice(mid);
 
-                let html = `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div><div class="final-grid">`;
+                // Listede olmayan personel (+ Ekle dropdown için)
+                const notInList = personData.filter(p => !shift.members.includes(p.id));
+                const addOptionsHtml = notInList.map(p => `<option value="${p.id}">${p.rank}. ${p.name}</option>`).join('');
+
+                let html = `<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <select id="finalAddSelect" style="flex: 1; min-width: 150px; padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">${notInList.length ? '+ Son dakika personel ekle...' : 'Eklenecek personel yok'}</option>
+                        ${addOptionsHtml}
+                    </select>
+                    <button class="btn btn-success" onclick="window.addFinalMember()" ${notInList.length ? '' : 'disabled'}><i class="fas fa-plus"></i> Ekle</button>
+                </div>`;
+
+                html += `<div id="finalListCapture">`;
+                html += `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div>`;
+                html += `<div class="final-grid">`;
                 
                 // SOL SÜTUN
                 html += `<div class="final-column" id="finalColLeft">`;
                 let num = 1;
                 leftColumn.forEach(p => {
-                    html += `<div class="final-item" draggable="true" data-id="${p.id}" style="background: ${p.color}; cursor: move;"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                    html += `<div class="final-item" draggable="true" data-id="${p.id}" style="background: ${p.color}; cursor: move; position: relative;">
+                        <button class="final-remove-btn" draggable="false" onclick="event.stopPropagation(); window.removeFinalMember(${p.id})" title="Çıkar"><i class="fas fa-times"></i></button>
+                        <div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
                     num++;
                 });
                 html += `</div>`;
@@ -1013,7 +1042,9 @@ Emin misiniz?
                 // SAĞ SÜTUN
                 html += `<div class="final-column" id="finalColRight">`;
                 rightColumn.forEach(p => {
-                    html += `<div class="final-item" draggable="true" data-id="${p.id}" style="background: ${p.color}; cursor: move;"><div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
+                    html += `<div class="final-item" draggable="true" data-id="${p.id}" style="background: ${p.color}; cursor: move; position: relative;">
+                        <button class="final-remove-btn" draggable="false" onclick="event.stopPropagation(); window.removeFinalMember(${p.id})" title="Çıkar"><i class="fas fa-times"></i></button>
+                        <div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
                     num++;
                 });
                 html += `</div>`;
@@ -1022,13 +1053,74 @@ Emin misiniz?
 
                 if (shift.nobetci) {
                     const nob = personData.find(p => p.id === shift.nobetci);
-                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name}</div>`;
+                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name} <button class="final-remove-btn" draggable="false" style="position: static; margin-left: 0.5rem;" onclick="window.removeFinalMember(${nob.id})" title="Çıkar"><i class="fas fa-times"></i></button></div>`;
                 }
+                html += `</div>`;
 
                 document.getElementById('finalList').innerHTML = html;
                 window.enableFinalDragDrop();
             } catch (e) {
                 document.getElementById('finalList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
+            }
+        };
+
+        // Son dakika personel ekleme/çıkarma (yeni vardiya oluşturmadan, aktif listeyi günceller)
+        window.addFinalMember = async function() {
+            const select = document.getElementById('finalAddSelect');
+            const newId = parseInt(select.value);
+            if (!newId) { alert('⚠️ Lütfen eklenecek personeli seçin'); return; }
+            if (!currentFinalShift) { alert('⚠️ Aktif vardiya bulunamadı'); return; }
+
+            const person = personData.find(p => p.id === newId);
+            if (!confirm(`${person ? person.rank + '. ' + person.name : 'Bu personel'} listeye eklensin mi?`)) return;
+
+            try {
+                const newMembers = [...currentFinalShift.members, newId];
+                await supabase.from('shift').update({ members: newMembers }).eq('id', 1);
+
+                // shifts_history'deki puan kaydına da ekle (henüz puan verilmemiş, 0 ile başlar)
+                const { data: hist } = await supabase.from('shifts_history').select('members_with_points').eq('date', currentFinalShift.date).single();
+                if (hist) {
+                    const updatedPoints = { ...(hist.members_with_points || {}), [newId]: 0 };
+                    await supabase.from('shifts_history').update({ members_with_points: updatedPoints }).eq('date', currentFinalShift.date);
+                }
+
+                window.renderFinalList();
+            } catch (e) {
+                alert('❌ Hata: ' + e.message);
+                console.error('addFinalMember Error:', e);
+            }
+        };
+
+        window.removeFinalMember = async function(id) {
+            if (!currentFinalShift) { alert('⚠️ Aktif vardiya bulunamadı'); return; }
+            const person = personData.find(p => p.id === id);
+            if (!confirm(`${person ? person.rank + '. ' + person.name : 'Bu personel'} listeden çıkarılsın mı?`)) return;
+
+            try {
+                const newMembers = currentFinalShift.members.filter(mid => mid !== id);
+                const updatePayload = { members: newMembers };
+                if (currentFinalShift.nobetci === id) {
+                    updatePayload.nobetci = null;
+                }
+                await supabase.from('shift').update(updatePayload).eq('id', 1);
+
+                // shifts_history'deki puan kaydından da çıkar
+                const { data: hist } = await supabase.from('shifts_history').select('members_with_points').eq('date', currentFinalShift.date).single();
+                if (hist && hist.members_with_points) {
+                    const updatedPoints = { ...hist.members_with_points };
+                    delete updatedPoints[id];
+                    await supabase.from('shifts_history').update({ members_with_points: updatedPoints }).eq('date', currentFinalShift.date);
+                }
+
+                if (currentFinalShift.nobetci === id) {
+                    alert('⚠️ Çıkarılan kişi nöbetçiydi. Yeni nöbetçiyi Vardiya Yönetimi sekmesinden seçebilirsiniz.');
+                }
+
+                window.renderFinalList();
+            } catch (e) {
+                alert('❌ Hata: ' + e.message);
+                console.error('removeFinalMember Error:', e);
             }
         };
 
@@ -1097,7 +1189,7 @@ Emin misiniz?
         window.shareDurum = async function() {
             const table = document.getElementById('durumTable');
             try {
-                const canvas = await html2canvas(table);
+                const canvas = await html2canvas(table, { scale: 3, backgroundColor: '#ffffff' });
                 canvas.toBlob(async (blob) => {
                     try {
                         const file = new File([blob], 'puan-durumu.jpg', { type: 'image/jpeg' });
@@ -1221,9 +1313,9 @@ Emin misiniz?
         }
 
         window.downloadAsImage = async function() {
-            const element = document.getElementById('finalList');
+            const element = document.getElementById('finalListCapture') || document.getElementById('finalList');
             try {
-                const canvas = await html2canvas(element);
+                const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', ignoreElements: (el) => el.classList && el.classList.contains('final-remove-btn') });
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/jpeg', 0.95);
                 link.download = `Vardiya_${formatDate(currentFinalShiftDate)}.jpg`;
@@ -1234,9 +1326,9 @@ Emin misiniz?
         };
 
         window.shareToWhatsApp = async function() {
-            const element = document.getElementById('finalList');
+            const element = document.getElementById('finalListCapture') || document.getElementById('finalList');
             try {
-                const canvas = await html2canvas(element);
+                const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', ignoreElements: (el) => el.classList && el.classList.contains('final-remove-btn') });
                 canvas.toBlob(async (blob) => {
                     const file = new File([blob], 'vardiya.jpg', { type: 'image/jpeg' });
                     await navigator.share({ title: 'Vardiya Listesi', text: formatDate(currentFinalShiftDate), files: [file] });

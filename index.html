@@ -1344,14 +1344,44 @@ Emin misiniz?
             return (now - parseInt(sessionTime)) < (30 * 24 * 60 * 60 * 1000);
         }
 
+        // Nihai liste görselini yakalarken çıkar (X) ve yukarı/aşağı butonlarını asla görsele dahil etme
+        function finalCaptureIgnore(el) {
+            return el.classList && (
+                el.classList.contains('final-remove-btn') ||
+                el.classList.contains('final-move-btns') ||
+                el.classList.contains('final-move-btn')
+            );
+        }
+
         window.downloadAsImage = async function() {
             const element = document.getElementById('finalListCapture') || document.getElementById('finalList');
             try {
-                const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', ignoreElements: (el) => el.classList && el.classList.contains('final-remove-btn') });
-                const link = document.createElement('a');
-                link.href = canvas.toDataURL('image/jpeg', 0.95);
-                link.download = `Vardiya_${formatDate(currentFinalShiftDate)}.jpg`;
-                link.click();
+                const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', ignoreElements: finalCaptureIgnore });
+                canvas.toBlob(async (blob) => {
+                    const fileName = `Vardiya_${formatDate(currentFinalShiftDate)}.jpg`;
+                    const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+                    // iOS/mobil: <a download> çoğu zaman çalışmıyor, native paylaşım sayfasındaki
+                    // "Resme Kaydet/Save Image" seçeneği güvenilir şekilde galeriye kaydediyor.
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({ files: [file] });
+                            return;
+                        } catch (shareErr) {
+                            if (shareErr.name === 'AbortError') return; // kullanıcı iptal etti
+                        }
+                    }
+
+                    // Masaüstü / paylaşım desteklemeyen tarayıcılar için klasik indirme
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                }, 'image/jpeg', 0.95);
             } catch (e) {
                 alert('Hata: ' + e.message);
             }
@@ -1360,13 +1390,21 @@ Emin misiniz?
         window.shareToWhatsApp = async function() {
             const element = document.getElementById('finalListCapture') || document.getElementById('finalList');
             try {
-                const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', ignoreElements: (el) => el.classList && el.classList.contains('final-remove-btn') });
+                const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', ignoreElements: finalCaptureIgnore });
                 canvas.toBlob(async (blob) => {
-                    const file = new File([blob], 'vardiya.jpg', { type: 'image/jpeg' });
-                    await navigator.share({ title: 'Vardiya Listesi', text: formatDate(currentFinalShiftDate), files: [file] });
-                });
+                    const file = new File([blob], `Vardiya_${formatDate(currentFinalShiftDate)}.jpg`, { type: 'image/jpeg' });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({ files: [file] });
+                        } catch (shareErr) {
+                            if (shareErr.name !== 'AbortError') alert('Paylaşım yapılamadı: ' + shareErr.message);
+                        }
+                    } else {
+                        alert('⚠️ Bu tarayıcı resim paylaşımını desteklemiyor. "Resim Olarak İndir" ile kaydedip galeriden paylaşabilirsiniz.');
+                    }
+                }, 'image/jpeg', 0.95);
             } catch (e) {
-                alert('Paylaş yapılamadı');
+                alert('Paylaş yapılamadı: ' + e.message);
             }
         };
 

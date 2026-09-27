@@ -59,11 +59,13 @@
             position: relative;
             user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
         }
-        .final-move-btns { position: absolute; bottom: 3px; right: 4px; display: flex; flex-direction: column; gap: 1px; z-index: 2; }
         .final-move-btn {
-            width: 16px; height: 14px; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 3px;
-            font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; line-height: 1;
+            position: absolute; right: 4px;
+            width: 20px; height: 18px; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 4px;
+            font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 2;
         }
+        .final-move-up { top: 4px; }
+        .final-move-down { bottom: 4px; }
         .final-move-btn:hover { background: rgba(0,0,0,0.6); }
         .final-move-btn:disabled { opacity: 0.25; cursor: default; }
         .final-number { font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #fff; background-color: inherit; border-right: 1px solid rgba(255,255,255,0.2); }
@@ -131,17 +133,6 @@
         .calendar-legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem; font-size: 11px; color: #666; }
         .calendar-legend span { display: inline-flex; align-items: center; gap: 4px; }
         .calendar-legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-
-        .final-remove-btn {
-            position: absolute; top: 4px; right: 4px;
-            width: 20px; height: 20px;
-            background: rgba(220,38,38,0.9); color: white;
-            border: none; border-radius: 50%;
-            cursor: pointer; font-size: 11px;
-            display: flex; align-items: center; justify-content: center;
-            line-height: 1; padding: 0; z-index: 2;
-        }
-        .final-remove-btn:hover { background: #b91c1c; }
     </style>
 </head>
 <body>
@@ -1051,13 +1042,23 @@ Emin misiniz?
                     <button class="btn btn-success" onclick="window.addFinalMember()" ${notInList.length ? '' : 'disabled'}><i class="fas fa-plus"></i> Ekle</button>
                 </div>`;
 
-                html += `<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+                html += `<div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; align-items: center;">
                     <label style="font-size: 13px; font-weight: 600; color: #556B2F;">👑 Nöbetçi:</label>
                     <select id="finalNobetciSelect" style="flex: 1; min-width: 150px; padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;" ${sorted.length ? '' : 'disabled'}>
                         <option value="">Seçilmedi</option>
                         ${nobetciOptionsHtml}
                     </select>
                     <button class="btn btn-primary" onclick="window.changeNobetci()" ${sorted.length ? '' : 'disabled'}><i class="fas fa-crown"></i> Ata</button>
+                </div>`;
+
+                // Çıkarma işlemi artık kartların üstünden değil, ayrı bu satırdan yapılıyor (küçük kartta X ile ok butonları birbirine çok yakındı)
+                const removeOptionsHtml = sorted.map(p => `<option value="${p.id}">${p.rank}. ${p.name}${p.id === shift.nobetci ? ' (Nöbetçi)' : ''}</option>`).join('');
+                html += `<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+                    <select id="finalRemoveSelect" style="flex: 1; min-width: 150px; padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;" ${sorted.length ? '' : 'disabled'}>
+                        <option value="">${sorted.length ? 'Çıkarılacak personeli seç...' : 'Listede kimse yok'}</option>
+                        ${removeOptionsHtml}
+                    </select>
+                    <button class="btn btn-danger" onclick="window.removeFinalMemberFromSelect()" ${sorted.length ? '' : 'disabled'}><i class="fas fa-trash"></i> Çıkar</button>
                 </div>`;
 
                 html += `<div id="finalListCapture">`;
@@ -1069,7 +1070,7 @@ Emin misiniz?
 
                 if (shift.nobetci) {
                     const nob = personData.find(p => p.id === shift.nobetci);
-                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name} <button class="final-remove-btn" style="position: static; margin-left: 0.5rem;" onclick="window.removeFinalMember(${nob.id})" title="Çıkar"><i class="fas fa-times"></i></button></div>`;
+                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name}</div>`;
                 }
                 html += `</div>`;
 
@@ -1094,11 +1095,8 @@ Emin misiniz?
                 const isFirst = position === 0;
                 const isLast = position === total - 1;
                 return `<div class="final-item" data-id="${p.id}" style="background: ${p.color};">
-                    <button class="final-remove-btn" onclick="event.stopPropagation(); window.removeFinalMember(${p.id})" title="Çıkar"><i class="fas fa-times"></i></button>
-                    <div class="final-move-btns">
-                        <button class="final-move-btn" onclick="event.stopPropagation(); window.moveFinalItem(${p.id}, 'up')" ${isFirst ? 'disabled' : ''} title="Yukarı Taşı"><i class="fas fa-chevron-up"></i></button>
-                        <button class="final-move-btn" onclick="event.stopPropagation(); window.moveFinalItem(${p.id}, 'down')" ${isLast ? 'disabled' : ''} title="Aşağı Taşı"><i class="fas fa-chevron-down"></i></button>
-                    </div>
+                    <button class="final-move-btn final-move-up" onclick="event.stopPropagation(); window.moveFinalItem(${p.id}, 'up')" ${isFirst ? 'disabled' : ''} title="Yukarı Taşı"><i class="fas fa-chevron-up"></i></button>
+                    <button class="final-move-btn final-move-down" onclick="event.stopPropagation(); window.moveFinalItem(${p.id}, 'down')" ${isLast ? 'disabled' : ''} title="Aşağı Taşı"><i class="fas fa-chevron-down"></i></button>
                     <div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div>
                 </div>`;
             }
@@ -1166,6 +1164,13 @@ Emin misiniz?
                 alert('❌ Hata: ' + e.message);
                 console.error('changeNobetci Error:', e);
             }
+        };
+
+        window.removeFinalMemberFromSelect = function() {
+            const select = document.getElementById('finalRemoveSelect');
+            const id = parseInt(select.value);
+            if (!id) { alert('⚠️ Lütfen çıkarılacak personeli seçin'); return; }
+            window.removeFinalMember(id);
         };
 
         window.removeFinalMember = async function(id) {

@@ -54,9 +54,20 @@
         .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; }
         .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0; }
         .final-column { display: flex; flex-direction: column; gap: 0; }
-        .final-item { display: grid; grid-template-columns: 50px 1fr; height: 48px; overflow: hidden; border: 1px solid #ddd; }
+        .final-item {
+            display: grid; grid-template-columns: 50px 1fr; height: 48px; overflow: hidden; border: 1px solid #ddd;
+            position: relative;
+            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+        }
+        .final-move-btns { position: absolute; bottom: 3px; right: 4px; display: flex; flex-direction: column; gap: 1px; z-index: 2; }
+        .final-move-btn {
+            width: 16px; height: 14px; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 3px;
+            font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; line-height: 1;
+        }
+        .final-move-btn:hover { background: rgba(0,0,0,0.6); }
+        .final-move-btn:disabled { opacity: 0.25; cursor: default; }
         .final-number { font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center; color: #fff; background-color: inherit; border-right: 1px solid rgba(255,255,255,0.2); }
-        .final-name { font-size: 8px; word-break: break-word; padding: 0.5rem; display: flex; align-items: center; color: #fff; font-weight: 600; }
+        .final-name { font-size: 8px; word-break: break-word; padding: 0.5rem; padding-right: 22px; display: flex; align-items: center; color: #fff; font-weight: 600; }
         .empty-state { text-align: center; padding: 2rem; color: #999; }
         .nob-section { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center; box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3); }
         .close-modal { float: right; font-size: 24px; cursor: pointer; font-weight: bold; }
@@ -128,7 +139,7 @@
             border: none; border-radius: 50%;
             cursor: pointer; font-size: 11px;
             display: flex; align-items: center; justify-content: center;
-            line-height: 1; padding: 0;
+            line-height: 1; padding: 0; z-index: 2;
         }
         .final-remove-btn:hover { background: #b91c1c; }
     </style>
@@ -439,6 +450,7 @@
         let currentShiftDate = null;
         let currentFinalShiftDate = null;
         let currentFinalShift = null;
+        let currentFinalOrder = [];
         let currentShiftMembers = [];
         let currentShiftNobetci = null;
         let editingPersonId = null;
@@ -594,14 +606,30 @@
         };
 
         // Vardiya Yönetimi
-        window.createNewShift = function() {
+        window.createNewShift = async function() {
             const date = document.getElementById('shiftDate').value;
             if (!date) { alert('Lütfen tarihi seçiniz'); return; }
             currentShiftDate = date;
-            currentShiftMembers = [];
-            currentShiftNobetci = null;
+
+            // Bir önceki vardiyada seçilen personeli otomatik getir (sık değişmiyorsa tekrar tekrar seçmeye gerek kalmasın)
+            let prefilledCount = 0;
+            try {
+                const { data: prevShift } = await supabase.from('shift').select('*').eq('id', 1).single();
+                if (prevShift && prevShift.members && prevShift.members.length > 0) {
+                    currentShiftMembers = [...prevShift.members];
+                    currentShiftNobetci = prevShift.members.includes(prevShift.nobetci) ? prevShift.nobetci : null;
+                    prefilledCount = currentShiftMembers.length;
+                } else {
+                    currentShiftMembers = [];
+                    currentShiftNobetci = null;
+                }
+            } catch (e) {
+                currentShiftMembers = [];
+                currentShiftNobetci = null;
+            }
+
             window.updateChecklists();
-            alert('✅ Vardiya tarihi seçildi: ' + formatDate(date));
+            alert('✅ Vardiya tarihi seçildi: ' + formatDate(date) + (prefilledCount ? `\n\n👥 Önceki vardiyadaki ${prefilledCount} kişi otomatik seçildi. Gerekirse işaretleri değiştirin.` : ''));
         };
 
         window.updateChecklists = function() {
@@ -615,7 +643,7 @@
             const checklist = document.getElementById('checklist');
             checklist.innerHTML = sortedByRank.map(p => `
                 <label class="checkbox-item">
-                    <input type="checkbox" data-id="${p.id}" onchange="window.updateSelectedMembers()">
+                    <input type="checkbox" data-id="${p.id}" ${currentShiftMembers.includes(p.id) ? 'checked' : ''} onchange="window.updateSelectedMembers()">
                     <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
                 </label>
             `).join('');
@@ -633,7 +661,7 @@
             const nobList = document.getElementById('nobList');
             nobList.innerHTML = selected.map(p => `
                 <label class="checkbox-item">
-                    <input type="radio" name="nobetci" value="${p.id}" onchange="window.setNobetci(${p.id})">
+                    <input type="radio" name="nobetci" value="${p.id}" ${currentShiftNobetci === p.id ? 'checked' : ''} onchange="window.setNobetci(${p.id})">
                     <div style="color: ${p.color}; font-weight: 600;">${p.rank}. ${p.name}</div>
                 </label>
             `).join('');
@@ -1004,13 +1032,9 @@ Emin misiniz?
                 // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
                 const sorted = shuffleByPoints(selected);
 
-                // Nöbetçi olmayan personel
+                // Nöbetçi olmayan personel — bu, currentFinalOrder'ın kaynağı (görsel sıralama state'i)
                 const notNobetci = sorted.filter(p => p.id !== shift.nobetci);
-                
-                // Yarısında böl
-                const mid = Math.ceil(notNobetci.length / 2);
-                const leftColumn = notNobetci.slice(0, mid);
-                const rightColumn = notNobetci.slice(mid);
+                currentFinalOrder = notNobetci.map(p => p.id);
 
                 // Listede olmayan personel (+ Ekle dropdown için)
                 const notInList = personData.filter(p => !shift.members.includes(p.id));
@@ -1038,42 +1062,61 @@ Emin misiniz?
 
                 html += `<div id="finalListCapture">`;
                 html += `<div style="text-align: center; margin-bottom: 1rem;"><strong>Vardiya Tarihi: ${formatDate(shift.date)}</strong></div>`;
-                html += `<div class="final-grid">`;
-                
-                // SOL SÜTUN
-                html += `<div class="final-column" id="finalColLeft">`;
-                let num = 1;
-                leftColumn.forEach(p => {
-                    html += `<div class="final-item" draggable="true" data-id="${p.id}" style="background: ${p.color}; cursor: move; position: relative;">
-                        <button class="final-remove-btn" draggable="false" onclick="event.stopPropagation(); window.removeFinalMember(${p.id})" title="Çıkar"><i class="fas fa-times"></i></button>
-                        <div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
-                    num++;
-                });
-                html += `</div>`;
-                
-                // SAĞ SÜTUN
-                html += `<div class="final-column" id="finalColRight">`;
-                rightColumn.forEach(p => {
-                    html += `<div class="final-item" draggable="true" data-id="${p.id}" style="background: ${p.color}; cursor: move; position: relative;">
-                        <button class="final-remove-btn" draggable="false" onclick="event.stopPropagation(); window.removeFinalMember(${p.id})" title="Çıkar"><i class="fas fa-times"></i></button>
-                        <div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div></div>`;
-                    num++;
-                });
-                html += `</div>`;
-                
-                html += '</div>';
+                html += `<div class="final-grid">
+                    <div class="final-column" id="finalColLeft"></div>
+                    <div class="final-column" id="finalColRight"></div>
+                </div>`;
 
                 if (shift.nobetci) {
                     const nob = personData.find(p => p.id === shift.nobetci);
-                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name} <button class="final-remove-btn" draggable="false" style="position: static; margin-left: 0.5rem;" onclick="window.removeFinalMember(${nob.id})" title="Çıkar"><i class="fas fa-times"></i></button></div>`;
+                    if (nob) html += `<div class="nob-section">👑 <strong>NÖBETÇİ:</strong> ${nob.rank}. ${nob.name} <button class="final-remove-btn" style="position: static; margin-left: 0.5rem;" onclick="window.removeFinalMember(${nob.id})" title="Çıkar"><i class="fas fa-times"></i></button></div>`;
                 }
                 html += `</div>`;
 
                 document.getElementById('finalList').innerHTML = html;
-                window.enableFinalDragDrop();
+                window.renderFinalGrid();
             } catch (e) {
                 document.getElementById('finalList').innerHTML = '<div class="empty-state">Hata: ' + e.message + '</div>';
             }
+        };
+
+        // Nihai listedeki iki sütunu currentFinalOrder dizisine göre yeniden çizer (yukarı/aşağı taşımadan sonra da çağrılır)
+        window.renderFinalGrid = function() {
+            const total = currentFinalOrder.length;
+            const mid = Math.ceil(total / 2);
+            const leftIds = currentFinalOrder.slice(0, mid);
+            const rightIds = currentFinalOrder.slice(mid);
+
+            function buildItem(id, position) {
+                const p = personData.find(pp => pp.id === id);
+                if (!p) return '';
+                const num = position + 1;
+                const isFirst = position === 0;
+                const isLast = position === total - 1;
+                return `<div class="final-item" data-id="${p.id}" style="background: ${p.color};">
+                    <button class="final-remove-btn" onclick="event.stopPropagation(); window.removeFinalMember(${p.id})" title="Çıkar"><i class="fas fa-times"></i></button>
+                    <div class="final-move-btns">
+                        <button class="final-move-btn" onclick="event.stopPropagation(); window.moveFinalItem(${p.id}, 'up')" ${isFirst ? 'disabled' : ''} title="Yukarı Taşı"><i class="fas fa-chevron-up"></i></button>
+                        <button class="final-move-btn" onclick="event.stopPropagation(); window.moveFinalItem(${p.id}, 'down')" ${isLast ? 'disabled' : ''} title="Aşağı Taşı"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="final-number">${num}</div><div class="final-name">${p.rank}. ${p.name}</div>
+                </div>`;
+            }
+
+            const leftCol = document.getElementById('finalColLeft');
+            const rightCol = document.getElementById('finalColRight');
+            if (leftCol) leftCol.innerHTML = leftIds.map((id, i) => buildItem(id, i)).join('');
+            if (rightCol) rightCol.innerHTML = rightIds.map((id, i) => buildItem(id, mid + i)).join('');
+        };
+
+        // Yukarı/Aşağı ile manuel sıralama (iPhone'da native sürükleme çalışmadığı için buton ile)
+        window.moveFinalItem = function(id, direction) {
+            const idx = currentFinalOrder.indexOf(id);
+            if (idx === -1) return;
+            const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+            if (newIdx < 0 || newIdx >= currentFinalOrder.length) return;
+            [currentFinalOrder[idx], currentFinalOrder[newIdx]] = [currentFinalOrder[newIdx], currentFinalOrder[idx]];
+            window.renderFinalGrid();
         };
 
         // Son dakika personel ekleme/çıkarma (yeni vardiya oluşturmadan, aktif listeyi günceller)
@@ -1155,50 +1198,6 @@ Emin misiniz?
                 alert('❌ Hata: ' + e.message);
                 console.error('removeFinalMember Error:', e);
             }
-        };
-
-        window.enableFinalDragDrop = function() {
-            const items = document.querySelectorAll('.final-item');
-            let draggedItem = null;
-
-            items.forEach(item => {
-                item.addEventListener('dragstart', function() {
-                    draggedItem = this;
-                    setTimeout(() => this.style.opacity = '0.4', 0);
-                });
-                item.addEventListener('dragend', function() {
-                    this.style.opacity = '1';
-                    window.renumberFinalList();
-                });
-                item.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                });
-                item.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    if (draggedItem && draggedItem !== this) {
-                        this.parentNode.insertBefore(draggedItem, this);
-                    }
-                });
-            });
-
-            // Boş sütunlara da bırakılabilsin diye kolonların kendisine de listener ekle
-            document.querySelectorAll('.final-column').forEach(col => {
-                col.addEventListener('dragover', function(e) { e.preventDefault(); });
-                col.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    if (draggedItem && e.target === this) {
-                        this.appendChild(draggedItem);
-                    }
-                });
-            });
-        };
-
-        window.renumberFinalList = function() {
-            let num = 1;
-            document.querySelectorAll('#finalColLeft .final-item, #finalColRight .final-item').forEach(item => {
-                item.querySelector('.final-number').textContent = num;
-                num++;
-            });
         };
 
         // Puan Durumu Çizelgesi

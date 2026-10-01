@@ -475,6 +475,31 @@
             return result;
         }
 
+        // Yeni eklenen personeli, mevcut dondurulmuş sıradaki kendi puan grubunun İÇİNE,
+        // bir kereye mahsus rastgele bir konuma yerleştirir. Diğer herkesin sırası korunur.
+        function insertIntoPointGroup(memberIds, newPerson) {
+            const newPoints = newPerson.points || 0;
+            const withPoints = memberIds.map(id => ({ id, points: (personData.find(p => p.id === id)?.points) || 0 }));
+
+            const groupIndices = [];
+            withPoints.forEach((item, i) => { if (item.points === newPoints) groupIndices.push(i); });
+
+            const result = [...memberIds];
+            if (groupIndices.length > 0) {
+                // Aynı puanlı bir grup zaten var: grubun başı ile sonu arasında (dahil, sona da dahil olacak şekilde) rastgele bir yere ekle
+                const groupStart = groupIndices[0];
+                const groupEnd = groupIndices[groupIndices.length - 1];
+                const insertPos = groupStart + Math.floor(Math.random() * (groupEnd - groupStart + 2));
+                result.splice(insertPos, 0, newPerson.id);
+            } else {
+                // Aynı puanlı kimse yok: puana göre doğru (azalan) sıraya yerleştir, shuffle gerekmez
+                let pos = withPoints.findIndex(item => item.points < newPoints);
+                if (pos === -1) pos = withPoints.length;
+                result.splice(pos, 0, newPerson.id);
+            }
+            return result;
+        }
+
         // Tab Yönetimi
         window.switchTab = function(tabName) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -667,10 +692,17 @@
             if (currentShiftMembers.length === 0) { alert('Lütfen personel seçiniz'); return; }
             
             try {
-                console.log('Kaydetme:', { date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci });
+                // Nihai listede gösterilecek sırayı BİR KEZ dondur: puana göre azalan sırala, aynı puanlıları bir kere karıştır.
+                // Bu sıra shift.members içine aynen kaydediliyor; bundan sonra Nihai Liste'ye her girişte YENİDEN karıştırılmıyor.
+                const nobetciId = currentShiftNobetci;
+                const nonNobetciPersons = personData.filter(p => currentShiftMembers.includes(p.id) && p.id !== nobetciId);
+                const frozenOrder = shuffleByPoints(nonNobetciPersons).map(p => p.id);
+                const finalMembersOrder = nobetciId ? [...frozenOrder, nobetciId] : frozenOrder;
+
+                console.log('Kaydetme:', { date: currentShiftDate, members: finalMembersOrder, nobetci: currentShiftNobetci });
                 
-                // shift tablosuna kaydet (live vardiya)
-                await supabase.from('shift').upsert([{ id: 1, date: currentShiftDate, members: currentShiftMembers, nobetci: currentShiftNobetci }]);
+                // shift tablosuna kaydet (live vardiya) — sıra donmuş halde
+                await supabase.from('shift').upsert([{ id: 1, date: currentShiftDate, members: finalMembersOrder, nobetci: currentShiftNobetci }]);
                 
                 // shifts_history'ye de kaydet (puan girişi için)
                 const memberMap = {};
@@ -1016,12 +1048,14 @@ Emin misiniz?
                     return;
                 }
 
-                const selected = personData.filter(p => shift.members.includes(p.id));
                 currentFinalShiftDate = shift.date;
                 currentFinalShift = shift;
-                
-                // v7.0: Puan sırasına göre sort + aynı puanlıları shuffle et
-                const sorted = shuffleByPoints(selected);
+
+                // ÖNEMLİ: Burada ARTIK yeniden sıralama/shuffle YAPILMIYOR.
+                // shift.members dizisinin sırası, vardiya kaydedilirken (saveShiftMembers) veya
+                // yeni personel eklenirken (addFinalMember) BİR KEZ belirlenip dondurulmuş halde geliyor.
+                // Nihai Liste'ye her girişte aynı sıra korunsun ki paylaşılan listeler tutarlı kalsın.
+                const sorted = shift.members.map(id => personData.find(p => p.id === id)).filter(Boolean);
 
                 // Nöbetçi olmayan personel — bu, currentFinalOrder'ın kaynağı (görsel sıralama state'i)
                 const notNobetci = sorted.filter(p => p.id !== shift.nobetci);
@@ -1059,6 +1093,11 @@ Emin misiniz?
                         ${removeOptionsHtml}
                     </select>
                     <button class="btn btn-danger" onclick="window.removeFinalMemberFromSelect()" ${sorted.length ? '' : 'disabled'}><i class="fas fa-trash"></i> Çıkar</button>
+                </div>`;
+
+                html += `<div style="margin-bottom: 1rem;">
+                    <button class="btn btn-primary" onclick="window.refreezeFinalOrder()" ${notNobetci.length ? '' : 'disabled'} style="font-size: 12px;"><i class="fas fa-random"></i> Puana Göre Sırala (bir kerelik)</button>
+                    <p style="font-size: 11px; color: #999; margin-top: 0.25rem;">Sıra normalde kaydedilirken otomatik dondurulur, tekrar paylaşımlar bozulmaz. Bu butona sadece sırayı yeniden karıştırmak istersen bas.</p>
                 </div>`;
 
                 html += `<div id="finalListCapture">`;
@@ -1128,7 +1167,13 @@ Emin misiniz?
             if (!confirm(`${person ? person.rank + '. ' + person.name : 'Bu personel'} listeye eklensin mi?`)) return;
 
             try {
-                const newMembers = [...currentFinalShift.members, newId];
+                // Mevcut donmuş sırayı boz madan, yeni kişiyi sadece kendi puan grubunun içine (bir kereye mahsus) yerleştir.
+                // Nöbetçi sıralamaya dahil değil, onu ayrı tutup sona ekliyoruz (render'da zaten ayrı gösteriliyor, pozisyonu önemsiz).
+                const nobetciId = currentFinalShift.nobetci;
+                const nonNobetciIds = currentFinalShift.members.filter(mid => mid !== nobetciId);
+                const newNonNobetciOrder = insertIntoPointGroup(nonNobetciIds, person);
+                const newMembers = nobetciId ? [...newNonNobetciOrder, nobetciId] : newNonNobetciOrder;
+
                 await supabase.from('shift').update({ members: newMembers }).eq('id', 1);
 
                 // shifts_history'deki puan kaydına da ekle (henüz puan verilmemiş, 0 ile başlar)
@@ -1163,6 +1208,25 @@ Emin misiniz?
             } catch (e) {
                 alert('❌ Hata: ' + e.message);
                 console.error('changeNobetci Error:', e);
+            }
+        };
+
+        // Mevcut vardiya için sırayı yeniden puana göre karıştırıp dondurur (manuel, isteğe bağlı)
+        window.refreezeFinalOrder = async function() {
+            if (!currentFinalShift) { alert('⚠️ Aktif vardiya bulunamadı'); return; }
+            if (!confirm('Mevcut sıra puana göre yeniden karıştırılsın mı? Daha önce paylaştığınız liste ile sıra artık eşleşmeyecek.')) return;
+
+            try {
+                const nobetciId = currentFinalShift.nobetci;
+                const nonNobetciPersons = personData.filter(p => currentFinalShift.members.includes(p.id) && p.id !== nobetciId);
+                const frozenOrder = shuffleByPoints(nonNobetciPersons).map(p => p.id);
+                const newMembers = nobetciId ? [...frozenOrder, nobetciId] : frozenOrder;
+
+                await supabase.from('shift').update({ members: newMembers }).eq('id', 1);
+                window.renderFinalList();
+            } catch (e) {
+                alert('❌ Hata: ' + e.message);
+                console.error('refreezeFinalOrder Error:', e);
             }
         };
 

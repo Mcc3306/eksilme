@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vardiya Eksilme Listesi v7.1</title>
+    <title>Vardiya Eksilme Listesi V1.0.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -151,7 +151,7 @@
     <div class="container">
         <div class="header" style="position: relative;">
             <div class="corner-badge"><i class="fas fa-shield-alt"></i></div>
-            <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi Programı</h1>
+            <h1><i class="fas fa-shield-alt"></i> 3'üncü Vardiya Eksilme Listesi Programı <span style="font-size: 13px; opacity: 0.8; font-weight: 600; white-space: nowrap;">V1.0.1</span></h1>
             <p>⚜️ Eksilme listesi sorumlusu en saf duyguların sahibidir. ⚜️</p>
             <p style="font-size: 12px; opacity: 0.75; margin-top: 0.25rem;">— Nikola TESLA</p>
             <button class="logout-btn" onclick="logout()">🔐 ÇIKIŞ</button>
@@ -816,23 +816,58 @@
                 
                 // Seçilen personeller
                 const memberIds = Object.keys(shift.members_with_points || {}).map(id => parseInt(id));
-                let selected = personData.filter(p => memberIds.includes(p.id));
-                
-                // v6.2: Rütbeye göre sort et
-                selected = selected.sort((a, b) => {
-                    const rankIndexA = rankOrder.indexOf(a.rank);
-                    const rankIndexB = rankOrder.indexOf(b.rank);
-                    return rankIndexA - rankIndexB;
-                });
-                
+                const byRank = (a, b) => rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank);
+
+                // Nihai Liste ile aynı sıra: bu tarih aktif vardiya ise, donmuş sırayı (shift.members) kullan.
+                // Nihai Liste'deki gibi nöbetçi numaralı listeye dahil değil, en sonda ayrı gösterilir.
+                let selected;
+                let numbered = false;
+                let nobetciId = null;
+                try {
+                    const { data: liveShift } = await supabase.from('shift').select('*').eq('id', 1).single();
+                    if (liveShift && liveShift.date === date && Array.isArray(liveShift.members)) {
+                        nobetciId = liveShift.nobetci || null;
+                        const ordered = liveShift.members
+                            .filter(id => memberIds.includes(id) && id !== nobetciId)
+                            .map(id => personData.find(p => p.id === id))
+                            .filter(Boolean);
+                        // Güvenlik: sırada olmayan ama puan kaydında olan biri varsa rütbe sırasıyla sona ekle
+                        const rest = personData
+                            .filter(p => memberIds.includes(p.id) && p.id !== nobetciId && !liveShift.members.includes(p.id))
+                            .sort(byRank);
+                        const nob = nobetciId && memberIds.includes(nobetciId) ? personData.find(p => p.id === nobetciId) : null;
+                        selected = [...ordered, ...rest, ...(nob ? [nob] : [])];
+                        numbered = true;
+                    }
+                } catch (e) {
+                    console.error('Aktif vardiya sırası alınamadı, rütbe sırasına geçiliyor:', e);
+                }
+
+                // Eski/aktif olmayan vardiyalarda sıra bilgisi yok: rütbeye göre sırala (önceki davranış)
+                if (!selected) {
+                    selected = personData.filter(p => memberIds.includes(p.id)).sort(byRank);
+                }
+
                 // Puan girişi HTML'i
+                let num = 0;
                 const html = '<h3 style="margin-bottom: 1rem;">Personellere Puan Veriniz (Vardiya: ' + formatDate(date) + ')</h3>' + 
-                    selected.map(p => `
+                    selected.map(p => {
+                        let prefix = '';
+                        if (numbered) {
+                            if (p.id === nobetciId) {
+                                prefix = '<span style="display:inline-block; min-width: 1.75rem; font-weight: 700;">👑</span>';
+                            } else {
+                                num++;
+                                prefix = `<span style="display:inline-block; min-width: 1.75rem; font-weight: 700; color: #556B2F;">${num}.</span>`;
+                            }
+                        }
+                        return `
                         <div class="form-group">
-                            <label>${p.rank}. ${p.name}</label>
+                            <label>${prefix}${p.rank}. ${p.name}</label>
                             <input type="number" id="puan-${p.id}" min="0" max="20" value="${shift.members_with_points[p.id] || 0}" placeholder="Puan girin">
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 
                 document.getElementById('pointsList').innerHTML = html;
                 document.getElementById('pointsList').dataset.shiftDate = date;
